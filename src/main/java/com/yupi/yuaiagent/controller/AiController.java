@@ -29,37 +29,37 @@ public class AiController {
     private ChatModel dashscopeChatModel;
 
     /**
-     * 同步调用 AI 恋爱大师应用
+     * 同步调用 AI 情感助手应用
      *
      * @param message
      * @param chatId
      * @return
      */
-    @GetMapping("/love_app/chat/sync")
+    @GetMapping({"/emotion_app/chat/sync", "/love_app/chat/sync"})
     public String doChatWithLoveAppSync(String message, String chatId) {
         return loveApp.doChat(message, chatId);
     }
 
     /**
-     * SSE 流式调用 AI 恋爱大师应用
+     * SSE 流式调用 AI 情感助手应用
      *
      * @param message
      * @param chatId
      * @return
      */
-    @GetMapping(value = "/love_app/chat/sse", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    @GetMapping(value = {"/emotion_app/chat/sse", "/love_app/chat/sse"}, produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public Flux<String> doChatWithLoveAppSSE(String message, String chatId) {
         return loveApp.doChatByStream(message, chatId);
     }
 
     /**
-     * SSE 流式调用 AI 恋爱大师应用
+     * SSE 流式调用 AI 情感助手应用
      *
      * @param message
      * @param chatId
      * @return
      */
-    @GetMapping(value = "/love_app/chat/server_sent_event")
+    @GetMapping(value = {"/emotion_app/chat/server_sent_event", "/love_app/chat/server_sent_event"})
     public Flux<ServerSentEvent<String>> doChatWithLoveAppServerSentEvent(String message, String chatId) {
         return loveApp.doChatByStream(message, chatId)
                 .map(chunk -> ServerSentEvent.<String>builder()
@@ -68,13 +68,13 @@ public class AiController {
     }
 
     /**
-     * SSE 流式调用 AI 恋爱大师应用
+     * SSE 流式调用 AI 情感助手应用
      *
      * @param message
      * @param chatId
      * @return
      */
-    @GetMapping(value = "/love_app/chat/sse_emitter")
+    @GetMapping(value = {"/emotion_app/chat/sse_emitter", "/love_app/chat/sse_emitter"})
     public SseEmitter doChatWithLoveAppServerSseEmitter(String message, String chatId) {
         // 创建一个超时时间较长的 SseEmitter
         SseEmitter sseEmitter = new SseEmitter(180000L); // 3 分钟超时

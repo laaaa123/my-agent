@@ -1,224 +1,267 @@
 package com.yupi.yuaiagent.app;
 
 import com.yupi.yuaiagent.advisor.MyLoggerAdvisor;
-import com.yupi.yuaiagent.advisor.ReReadingAdvisor;
-import com.yupi.yuaiagent.chatmemory.FileBasedChatMemory;
-import com.yupi.yuaiagent.rag.LoveAppRagCustomAdvisorFactory;
-import com.yupi.yuaiagent.rag.QueryRewriter;
+import com.yupi.yuaiagent.app.formatter.AnswerFormattingService;
+import com.yupi.yuaiagent.app.knowledge.KnowledgeRetrievalResult;
+import com.yupi.yuaiagent.app.knowledge.KnowledgeRetrievalService;
+import com.yupi.yuaiagent.app.prompt.EmotionalAssistantPrompts;
+import com.yupi.yuaiagent.app.router.HybridIntentRouter;
+import com.yupi.yuaiagent.app.router.model.IntentRoutingResult;
 import jakarta.annotation.Resource;
-import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.client.advisor.MessageChatMemoryAdvisor;
-import org.springframework.ai.chat.client.advisor.api.Advisor;
-import org.springframework.ai.chat.client.advisor.vectorstore.QuestionAnswerAdvisor;
 import org.springframework.ai.chat.memory.ChatMemory;
-import org.springframework.ai.chat.memory.InMemoryChatMemoryRepository;
-import org.springframework.ai.chat.memory.MessageWindowChatMemory;
 import org.springframework.ai.chat.model.ChatModel;
 import org.springframework.ai.chat.model.ChatResponse;
 import org.springframework.ai.tool.ToolCallback;
 import org.springframework.ai.tool.ToolCallbackProvider;
-import org.springframework.ai.vectorstore.VectorStore;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Flux;
 
 import java.util.List;
 
+/**
+ * AI 情感助手应用编排层。
+ */
 @Component
-@Slf4j
 public class LoveApp {
+
+    private static final Logger log = LoggerFactory.getLogger(LoveApp.class);
+    private static final String CHAT_MEMORY_CONVERSATION_ID_KEY = "chat_memory_conversation_id";
 
     private final ChatClient chatClient;
 
-    private static final String SYSTEM_PROMPT = "扮演深耕恋爱心理领域的专家。开场向用户表明身份，告知用户可倾诉恋爱难题。" +
-            "围绕单身、恋爱、已婚三种状态提问：单身状态询问社交圈拓展及追求心仪对象的困扰；" +
-            "恋爱状态询问沟通、习惯差异引发的矛盾；已婚状态询问家庭责任与亲属关系处理的问题。" +
-            "引导用户详述事情经过、对方反应及自身想法，以便给出专属解决方案。";
-
-    /**
-     * 初始化 ChatClient
-     *
-     * @param dashscopeChatModel
-     */
-    public LoveApp(ChatModel dashscopeChatModel) {
-//        // 初始化基于文件的对话记忆
-//        String fileDir = System.getProperty("user.dir") + "/tmp/chat-memory";
-//        ChatMemory chatMemory = new FileBasedChatMemory(fileDir);
-        // 初始化基于内存的对话记忆
-        MessageWindowChatMemory chatMemory = MessageWindowChatMemory.builder()
-                .chatMemoryRepository(new InMemoryChatMemoryRepository())
-                .maxMessages(20)
-                .build();
-        chatClient = ChatClient.builder(dashscopeChatModel)
-                .defaultSystem(SYSTEM_PROMPT)
-                .defaultAdvisors(
-                        MessageChatMemoryAdvisor.builder(chatMemory).build(),
-                        // 自定义日志 Advisor，可按需开启
-                        new MyLoggerAdvisor()
-//                        // 自定义推理增强 Advisor，可按需开启
-//                       ,new ReReadingAdvisor()
-                )
-                .build();
-    }
-
-    /**
-     * AI 基础对话（支持多轮对话记忆）
-     *
-     * @param message
-     * @param chatId
-     * @return
-     */
-    public String doChat(String message, String chatId) {
-        ChatResponse chatResponse = chatClient
-                .prompt()
-                .user(message)
-                .advisors(spec -> spec.param(ChatMemory.CONVERSATION_ID, chatId))
-                .call()
-                .chatResponse();
-        String content = chatResponse.getResult().getOutput().getText();
-        log.info("content: {}", content);
-        return content;
-    }
-
-    /**
-     * AI 基础对话（支持多轮对话记忆，SSE 流式传输）
-     *
-     * @param message
-     * @param chatId
-     * @return
-     */
-    public Flux<String> doChatByStream(String message, String chatId) {
-        return chatClient
-                .prompt()
-                .user(message)
-                .advisors(spec -> spec.param(ChatMemory.CONVERSATION_ID, chatId))
-                .stream()
-                .content();
-    }
-
-    record LoveReport(String title, List<String> suggestions) {
-
-    }
-
-    /**
-     * AI 恋爱报告功能（实战结构化输出）
-     *
-     * @param message
-     * @param chatId
-     * @return
-     */
-    public LoveReport doChatWithReport(String message, String chatId) {
-        LoveReport loveReport = chatClient
-                .prompt()
-                .system(SYSTEM_PROMPT + "每次对话后都要生成恋爱结果，标题为{用户名}的恋爱报告，内容为建议列表")
-                .user(message)
-                .advisors(spec -> spec.param(ChatMemory.CONVERSATION_ID, chatId))
-                .call()
-                .entity(LoveReport.class);
-        log.info("loveReport: {}", loveReport);
-        return loveReport;
-    }
-
-    // AI 恋爱知识库问答功能
-
     @Resource
-    private VectorStore loveAppVectorStore;
+    private HybridIntentRouter hybridIntentRouter;
 
-    @Resource
-    private Advisor loveAppRagCloudAdvisor;
-
-    @Resource
-    private VectorStore pgVectorVectorStore;
-
-    @Resource
-    private QueryRewriter queryRewriter;
-
-    /**
-     * 和 RAG 知识库进行对话
-     *
-     * @param message
-     * @param chatId
-     * @return
-     */
-    public String doChatWithRag(String message, String chatId) {
-        // 查询重写
-        String rewrittenMessage = queryRewriter.doQueryRewrite(message);
-        ChatResponse chatResponse = chatClient
-                .prompt()
-                // 使用改写后的查询
-                .user(rewrittenMessage)
-                .advisors(spec -> spec.param(ChatMemory.CONVERSATION_ID, chatId))
-                // 开启日志，便于观察效果
-                .advisors(new MyLoggerAdvisor())
-                // 应用 RAG 知识库问答
-                .advisors(new QuestionAnswerAdvisor(loveAppVectorStore))
-                // 应用 RAG 检索增强服务（基于云知识库服务）
-//                .advisors(loveAppRagCloudAdvisor)
-                // 应用 RAG 检索增强服务（基于 PgVector 向量存储）
-//                .advisors(new QuestionAnswerAdvisor(pgVectorVectorStore))
-                // 应用自定义的 RAG 检索增强服务（文档查询器 + 上下文增强器）
-//                .advisors(
-//                        LoveAppRagCustomAdvisorFactory.createLoveAppRagCustomAdvisor(
-//                                loveAppVectorStore, "单身"
-//                        )
-//                )
-                .call()
-                .chatResponse();
-        String content = chatResponse.getResult().getOutput().getText();
-        log.info("content: {}", content);
-        return content;
-    }
-
-    // AI 调用工具能力
     @Resource
     private ToolCallback[] allTools;
-
-    /**
-     * AI 恋爱报告功能（支持调用工具）
-     *
-     * @param message
-     * @param chatId
-     * @return
-     */
-    public String doChatWithTools(String message, String chatId) {
-        ChatResponse chatResponse = chatClient
-                .prompt()
-                .user(message)
-                .advisors(spec -> spec.param(ChatMemory.CONVERSATION_ID, chatId))
-                // 开启日志，便于观察效果
-                .advisors(new MyLoggerAdvisor())
-                .toolCallbacks(allTools)
-                .call()
-                .chatResponse();
-        String content = chatResponse.getResult().getOutput().getText();
-        log.info("content: {}", content);
-        return content;
-    }
-
-    // AI 调用 MCP 服务
 
     @Resource
     private ToolCallbackProvider toolCallbackProvider;
 
+    @Resource
+    private AnswerFormattingService answerFormattingService;
+
+    @Resource
+    private KnowledgeRetrievalService knowledgeRetrievalService;
+
+    public LoveApp(ChatModel dashscopeChatModel, ChatMemory chatMemory) {
+        this.chatClient = ChatClient.builder(dashscopeChatModel)
+                .defaultAdvisors(MessageChatMemoryAdvisor.builder(chatMemory).build())
+                .build();
+    }
+
     /**
-     * AI 恋爱报告功能（调用 MCP 服务）
+     * AI 情感助手同步对话。
      *
-     * @param message
-     * @param chatId
-     * @return
+     * @param message 用户消息
+     * @param chatId 会话 id
+     * @return AI 回复
+     */
+    public String doChat(String message, String chatId) {
+        IntentRoutingResult routingResult = hybridIntentRouter.route(message, chatId);
+        log.info("同步对话路由结果：intent={}, confidence={}, source={}",
+                routingResult.intent(), routingResult.confidence(), routingResult.source());
+        return switch (routingResult.intent()) {
+            case CHITCHAT -> doChatByCall(message, chatId, EmotionalAssistantPrompts.CHITCHAT_SYSTEM_PROMPT);
+            case TOOL -> doToolChatByCall(message, chatId);
+            case CLARIFICATION -> doClarificationByCall(message, chatId);
+            case KNOWLEDGE -> doKnowledgeChatByCall(message, chatId);
+        };
+    }
+
+    /**
+     * AI 情感助手流式对话。
+     *
+     * @param message 用户消息
+     * @param chatId 会话 id
+     * @return 流式回复
+     */
+    public Flux<String> doChatByStream(String message, String chatId) {
+        IntentRoutingResult routingResult = hybridIntentRouter.route(message, chatId);
+        log.info("流式对话路由结果：intent={}, confidence={}, source={}",
+                routingResult.intent(), routingResult.confidence(), routingResult.source());
+        return switch (routingResult.intent()) {
+            case CHITCHAT -> doChatByStream(message, chatId, EmotionalAssistantPrompts.CHITCHAT_SYSTEM_PROMPT);
+            case TOOL -> doToolChatByStream(message, chatId);
+            case CLARIFICATION -> doClarificationByStream(message, chatId);
+            case KNOWLEDGE -> doKnowledgeChatByStream(message, chatId);
+        };
+    }
+
+    /**
+     * 情感分析报告。
+     *
+     * @param message 用户消息
+     * @param chatId 会话 id
+     * @return 结构化报告
+     */
+    public LoveReport doChatWithReport(String message, String chatId) {
+        LoveReport loveReport = chatClient.prompt()
+                .system(EmotionalAssistantPrompts.REPORT_SYSTEM_PROMPT)
+                .user(message)
+                .advisors(spec -> spec.param(CHAT_MEMORY_CONVERSATION_ID_KEY, chatId))
+                .advisors(new MyLoggerAdvisor())
+                .call()
+                .entity(LoveReport.class);
+        log.info("情感分析报告：{}", loveReport);
+        return loveReport;
+    }
+
+    /**
+     * 显式走知识库问答。
+     *
+     * @param message 用户消息
+     * @param chatId 会话 id
+     * @return 回复内容
+     */
+    public String doChatWithRag(String message, String chatId) {
+        return doKnowledgeChatByCall(message, chatId);
+    }
+
+    /**
+     * 显式走工具调用。
+     *
+     * @param message 用户消息
+     * @param chatId 会话 id
+     * @return 回复内容
+     */
+    public String doChatWithTools(String message, String chatId) {
+        return doToolChatByCall(message, chatId);
+    }
+
+    /**
+     * 显式走 MCP 工具调用。
+     *
+     * @param message 用户消息
+     * @param chatId 会话 id
+     * @return 回复内容
      */
     public String doChatWithMcp(String message, String chatId) {
-        ChatResponse chatResponse = chatClient
-                .prompt()
+        ChatResponse chatResponse = chatClient.prompt()
+                .system(EmotionalAssistantPrompts.TOOL_SYSTEM_PROMPT)
                 .user(message)
-                .advisors(spec -> spec.param(ChatMemory.CONVERSATION_ID, chatId))
-                // 开启日志，便于观察效果
+                .advisors(spec -> spec.param(CHAT_MEMORY_CONVERSATION_ID_KEY, chatId))
                 .advisors(new MyLoggerAdvisor())
                 .toolCallbacks(toolCallbackProvider)
                 .call()
                 .chatResponse();
-        String content = chatResponse.getResult().getOutput().getText();
-        log.info("content: {}", content);
+        String content = formatAnswer(chatResponse.getResult().getOutput().getText());
+        log.info("MCP 工具调用回复：{}", content);
         return content;
     }
+
+    private String doKnowledgeChatByCall(String message, String chatId) {
+        KnowledgeRetrievalResult retrievalResult = knowledgeRetrievalService.retrieve(message, chatId);
+        String knowledgePrompt = EmotionalAssistantPrompts.buildKnowledgeUserPrompt(message, retrievalResult.context());
+        ChatResponse chatResponse = chatClient.prompt()
+                .system(EmotionalAssistantPrompts.KNOWLEDGE_SYSTEM_PROMPT)
+                .user(knowledgePrompt)
+                .advisors(spec -> spec.param(CHAT_MEMORY_CONVERSATION_ID_KEY, chatId))
+                .advisors(new MyLoggerAdvisor())
+                .call()
+                .chatResponse();
+        String content = formatAnswer(chatResponse.getResult().getOutput().getText());
+        log.info("知识库回复：contextDocs={}, sessionScoped={}",
+                retrievalResult.documents().size(), retrievalResult.sessionScoped());
+        return content;
+    }
+
+    private Flux<String> doKnowledgeChatByStream(String message, String chatId) {
+        KnowledgeRetrievalResult retrievalResult = knowledgeRetrievalService.retrieve(message, chatId);
+        String knowledgePrompt = EmotionalAssistantPrompts.buildKnowledgeUserPrompt(message, retrievalResult.context());
+        log.info("知识库流式回复：contextDocs={}, sessionScoped={}",
+                retrievalResult.documents().size(), retrievalResult.sessionScoped());
+        return chatClient.prompt()
+                .system(EmotionalAssistantPrompts.KNOWLEDGE_SYSTEM_PROMPT)
+                .user(knowledgePrompt)
+                .advisors(spec -> spec.param(CHAT_MEMORY_CONVERSATION_ID_KEY, chatId))
+                .advisors(new MyLoggerAdvisor())
+                .stream()
+                .content()
+                .map(this::formatChunk);
+    }
+
+    private String doToolChatByCall(String message, String chatId) {
+        ChatResponse chatResponse = chatClient.prompt()
+                .system(EmotionalAssistantPrompts.TOOL_SYSTEM_PROMPT)
+                .user(message)
+                .advisors(spec -> spec.param(CHAT_MEMORY_CONVERSATION_ID_KEY, chatId))
+                .advisors(new MyLoggerAdvisor())
+                .toolCallbacks(allTools)
+                .call()
+                .chatResponse();
+        String content = formatAnswer(chatResponse.getResult().getOutput().getText());
+        log.info("工具调用回复：{}", content);
+        return content;
+    }
+
+    private Flux<String> doToolChatByStream(String message, String chatId) {
+        return chatClient.prompt()
+                .system(EmotionalAssistantPrompts.TOOL_SYSTEM_PROMPT)
+                .user(message)
+                .advisors(spec -> spec.param(CHAT_MEMORY_CONVERSATION_ID_KEY, chatId))
+                .advisors(new MyLoggerAdvisor())
+                .toolCallbacks(allTools)
+                .stream()
+                .content()
+                .map(this::formatChunk);
+    }
+
+    private String doClarificationByCall(String message, String chatId) {
+        return doChatByCall(message, chatId, EmotionalAssistantPrompts.CLARIFICATION_SYSTEM_PROMPT);
+    }
+
+    private Flux<String> doClarificationByStream(String message, String chatId) {
+        return doChatByStream(message, chatId, EmotionalAssistantPrompts.CLARIFICATION_SYSTEM_PROMPT);
+    }
+
+    private String doChatByCall(String message, String chatId, String systemPrompt) {
+        ChatResponse chatResponse = chatClient.prompt()
+                .system(systemPrompt)
+                .user(message)
+                .advisors(spec -> spec.param(CHAT_MEMORY_CONVERSATION_ID_KEY, chatId))
+                .advisors(new MyLoggerAdvisor())
+                .call()
+                .chatResponse();
+        String content = formatAnswer(chatResponse.getResult().getOutput().getText());
+        log.info("普通回复：{}", content);
+        return content;
+    }
+
+    private Flux<String> doChatByStream(String message, String chatId, String systemPrompt) {
+        return chatClient.prompt()
+                .system(systemPrompt)
+                .user(message)
+                .advisors(spec -> spec.param(CHAT_MEMORY_CONVERSATION_ID_KEY, chatId))
+                .advisors(new MyLoggerAdvisor())
+                .stream()
+                .content()
+                .map(this::formatChunk);
+    }
+
+    private String formatAnswer(String content) {
+        return answerFormattingService.format(content);
+    }
+
+    private String formatChunk(String chunk) {
+        if (chunk == null || chunk.isBlank()) {
+            return chunk;
+        }
+        return chunk
+                .replace("###", "")
+                .replace("##", "")
+                .replace("#", "")
+                .replace("**", "")
+                .replace("__", "")
+                .replace("```", "")
+                .replace("`", "");
+    }
+
+    public record LoveReport(String title, List<String> suggestions) {
+    }
 }
+

@@ -1,60 +1,93 @@
 import axios from 'axios'
 
-// 根据环境变量设置 API 基础 URL
-const API_BASE_URL = process.env.NODE_ENV === 'production' 
- ? '/api' // 生产环境使用相对路径，适用于前后端部署在同一域名下
- : 'http://localhost:8123/api' // 开发环境指向本地后端服务
+const API_BASE_URL = process.env.NODE_ENV === 'production'
+  ? '/api'
+  : 'http://localhost:8123/api'
 
-// 创建axios实例
 const request = axios.create({
   baseURL: API_BASE_URL,
   timeout: 60000
 })
 
-// 封装SSE连接
-export const connectSSE = (url, params, onMessage, onError) => {
-  // 构建带参数的URL
+export const connectSSE = (url, params = {}, onMessage, onError) => {
   const queryString = Object.keys(params)
-    .map(key => `${encodeURIComponent(key)}=${encodeURIComponent(params[key])}`)
+    .map((key) => `${encodeURIComponent(key)}=${encodeURIComponent(params[key])}`)
     .join('&')
-  
-  const fullUrl = `${API_BASE_URL}${url}?${queryString}`
-  
-  // 创建EventSource
+
+  const fullUrl = queryString
+    ? `${API_BASE_URL}${url}?${queryString}`
+    : `${API_BASE_URL}${url}`
+
   const eventSource = new EventSource(fullUrl)
-  
-  eventSource.onmessage = event => {
-    let data = event.data
-    
-    // 检查是否是特殊标记
-    if (data === '[DONE]') {
-      if (onMessage) onMessage('[DONE]')
-    } else {
-      // 处理普通消息
-      if (onMessage) onMessage(data)
+
+  eventSource.onmessage = (event) => {
+    if (onMessage) {
+      onMessage(event.data)
     }
   }
-  
-  eventSource.onerror = error => {
-    if (onError) onError(error)
+
+  eventSource.onerror = (error) => {
+    if (onError) {
+      onError(error)
+    }
     eventSource.close()
   }
-  
-  // 返回eventSource实例，以便后续可以关闭连接
+
   return eventSource
 }
 
-// AI恋爱大师聊天
-export const chatWithLoveApp = (message, chatId) => {
-  return connectSSE('/ai/love_app/chat/sse', { message, chatId })
+export const chatWithLoveApp = (message, chatId) => connectSSE('/ai/emotion_app/chat/sse', { message, chatId })
+
+export const chatWithManus = (message) => connectSSE('/ai/manus/chat', { message })
+
+export const listChatSessions = async (limit = 50) => {
+  const response = await request.get('/chat-sessions', { params: { limit } })
+  return response.data
 }
 
-// AI超级智能体聊天
-export const chatWithManus = (message) => {
-  return connectSSE('/ai/manus/chat', { message })
+export const createChatSession = async (title = '') => {
+  const response = await request.post('/chat-sessions', { title })
+  return response.data
+}
+
+export const listChatMessages = async (sessionId, limit = 300) => {
+  const response = await request.get(`/chat-sessions/${encodeURIComponent(sessionId)}/messages`, {
+    params: { limit }
+  })
+  return response.data
+}
+
+export const deleteChatSession = async (sessionId) => {
+  const response = await request.delete(`/chat-sessions/${encodeURIComponent(sessionId)}`)
+  return response.data
+}
+
+export const uploadKnowledgeDocument = async (file, chatId) => {
+  const formData = new FormData()
+  formData.append('file', file)
+  if (chatId) {
+    formData.append('chatId', chatId)
+  }
+  const response = await request.post('/knowledge-base/upload', formData, {
+    headers: {
+      'Content-Type': 'multipart/form-data'
+    }
+  })
+  return response.data
+}
+
+export const getKnowledgeBaseStatus = async () => {
+  const response = await request.get('/knowledge-base/status')
+  return response.data
 }
 
 export default {
   chatWithLoveApp,
-  chatWithManus
-} 
+  chatWithManus,
+  listChatSessions,
+  createChatSession,
+  listChatMessages,
+  deleteChatSession,
+  uploadKnowledgeDocument,
+  getKnowledgeBaseStatus
+}
