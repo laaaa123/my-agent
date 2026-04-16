@@ -47,7 +47,7 @@
                 </div>
               </div>
 
-              <div>{{ getDisplayContent(msg.content) }}</div>
+              <div v-if="getDisplayContent(msg.content)">{{ getDisplayContent(msg.content) }}</div>
 
               <div v-if="getPdfUrl(msg.content)" class="pdf-preview-card">
                 <div class="pdf-preview-title">PDF 预览</div>
@@ -110,7 +110,7 @@
 </template>
 
 <script setup>
-import { nextTick, ref, watch } from 'vue'
+import { computed, nextTick, ref, watch } from 'vue'
 import AiAvatarFallback from './AiAvatarFallback.vue'
 import PdfPreview from './PdfPreview.vue'
 import { buildApiUrl } from '../api'
@@ -143,7 +143,7 @@ const emit = defineEmits(['send-message', 'upload-file'])
 const inputMessage = ref('')
 const messagesContainer = ref(null)
 const fileInputRef = ref(null)
-const themeClass = `theme-${props.aiType || 'default'}`
+const themeClass = computed(() => `theme-${props.aiType || 'default'}`)
 
 const PDF_MARKER_PATTERN = /PDF_URL::([^\s]+)/i
 const PDF_MARKDOWN_PATTERN = /\[[^\]]*\.pdf[^\]]*]\((\/api\/files\/pdf\/[^)\s]+)\)/i
@@ -177,9 +177,7 @@ const formatTime = (timestamp) => {
 }
 
 const normalizePdfUrl = (url = '') => {
-  return url
-    .trim()
-    .replace(/[)\]]+$/g, '')
+  return url.trim().replace(/[)\]]+$/g, '')
 }
 
 const extractPdfUrl = (content = '') => {

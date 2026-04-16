@@ -2,8 +2,8 @@
   <div class="assistant-container">
     <header class="header">
       <div class="back-button" @click="goBack">返回</div>
-      <h1 class="title">AI情感助手</h1>
-      <div class="chat-id">会话ID：{{ chatId || '未选择' }}</div>
+      <h1 class="title">AI 情感助手</h1>
+      <div class="chat-id">会话 ID：{{ chatId || '未选择' }}</div>
     </header>
 
     <div class="main-layout">
@@ -128,7 +128,7 @@ const ensureGuideMessages = async () => {
   if (messages.value.length > 0) {
     return
   }
-  addMessage('欢迎来到AI情感助手，请告诉我你的情绪或关系困扰，我会尽力提供帮助和建议。', false, 'ai-answer')
+  addMessage('欢迎来到 AI 情感助手，请告诉我你的情绪或关系困扰，我会尽力提供帮助和建议。', false, 'ai-answer')
 }
 
 const setCurrentSessionId = (sessionId) => {
@@ -212,6 +212,9 @@ const sendMessage = async (message) => {
   eventSource.onerror = async (error) => {
     console.error('SSE Error:', error)
     connectionStatus.value = 'error'
+    if (aiMessageIndex < messages.value.length && !messages.value[aiMessageIndex].content.trim()) {
+      messages.value[aiMessageIndex].content = '消息流中断了，请稍后重试。'
+    }
     closeEventSource()
     await refreshSessions()
   }
@@ -408,4 +411,3 @@ onBeforeUnmount(() => {
   }
 }
 </style>
-

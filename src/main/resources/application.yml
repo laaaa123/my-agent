@@ -17,7 +17,7 @@ spring:
       api-key: ${DASHSCOPE_API_KEY:sk-fc5e7764d09d4a8d8ff8bf33623a4d72}
       chat:
         options:
-          model: qwen3-max
+          model: qwen-max
     ollama:
       base-url: http://localhost:11434
       chat:

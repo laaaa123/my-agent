@@ -16,7 +16,7 @@
 
       <section class="card-grid">
         <article class="feature-card feature-card-primary" @click="navigateTo('/love-master')">
-          <div class="feature-icon">♡</div>
+          <div class="feature-icon">♥</div>
           <div class="feature-title">情感陪伴助手</div>
           <div class="feature-desc">
             适合倾诉、关系分析、情绪疏导与温和建议，整体体验更贴近陪伴式对话。

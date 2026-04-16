@@ -6,8 +6,8 @@ const routes = [
     name: 'Home',
     component: () => import('../views/Home.vue'),
     meta: {
-      title: '首页 - AI情感助手',
-      description: 'AI情感助手提供情感对话和复杂任务处理能力。'
+      title: '首页 - AI 情感助手',
+      description: 'AI 情感助手提供情感对话和复杂任务处理能力。'
     }
   },
   {
@@ -15,8 +15,8 @@ const routes = [
     name: 'LoveMaster',
     component: () => import('../views/LoveMaster.vue'),
     meta: {
-      title: 'AI情感助手',
-      description: 'AI情感助手为你提供情感陪伴、建议和对话支持。'
+      title: 'AI 情感助手',
+      description: 'AI 情感助手为你提供情感陪伴、建议和对话支持。'
     }
   },
   {
@@ -24,8 +24,8 @@ const routes = [
     name: 'SuperAgent',
     component: () => import('../views/SuperAgent.vue'),
     meta: {
-      title: 'AI情感助手',
-      description: 'AI情感助手支持复杂任务处理、工具调用和知识检索。'
+      title: 'AI 超级智能体',
+      description: 'AI 超级智能体支持复杂任务处理、工具调用和知识检索。'
     }
   }
 ]
