@@ -12,13 +12,15 @@
 
 ### 1. AI 情感助手应用
 支持多轮对话、会话记忆持久化、会话级知识库问答、工具调用与流式输出，为用户在情感沟通、关系决策、情绪疏导等场景提供专业、可信赖的 AI 辅助能力。
-![情感助手](./tmp/情感助手.png)
+<img width="1914" height="725" alt="情感助手" src="https://github.com/user-attachments/assets/89e0ae43-16e2-4286-b02f-b3a2cae421cd" />
+
 
 
 ### 2. AI 超级智能体
 具备任务拆解、自主规划、多工具协作执行能力，可灵活扩展至信息检索、网页分析、内容生成、结构化文档输出等复杂业务场景，实现从“对话式 AI”到“任务式智能体”的能力跃迁。
-![智能体](./tmp/智能体.png)
-![智能体2](./tmp/智能体2.png)
+<img width="1910" height="730" alt="智能体" src="https://github.com/user-attachments/assets/b613cc41-0425-4216-a917-298a99fb7c7f" />
+<img width="1066" height="530" alt="智能体2" src="https://github.com/user-attachments/assets/aabd01ef-90d2-4302-8927-3b4920c3c294" />
+
 
 ## ✨ 核心功能特性
 ### 1. AI 情感助手
