@@ -9,6 +9,23 @@ const request = axios.create({
   timeout: 60000
 })
 
+export const buildApiUrl = (path = '') => {
+  if (!path) {
+    return ''
+  }
+  if (/^https?:\/\//i.test(path)) {
+    return path
+  }
+  if (path.startsWith(API_BASE_URL)) {
+    return path
+  }
+  if (API_BASE_URL.endsWith('/api') && path.startsWith('/api/')) {
+    const origin = API_BASE_URL.slice(0, -4)
+    return `${origin}${path}`
+  }
+  return `${API_BASE_URL}${path.startsWith('/') ? path : `/${path}`}`
+}
+
 export const connectSSE = (url, params = {}, onMessage, onError) => {
   const queryString = Object.keys(params)
     .map((key) => `${encodeURIComponent(key)}=${encodeURIComponent(params[key])}`)
@@ -38,15 +55,23 @@ export const connectSSE = (url, params = {}, onMessage, onError) => {
 
 export const chatWithLoveApp = (message, chatId) => connectSSE('/ai/emotion_app/chat/sse', { message, chatId })
 
-export const chatWithManus = (message) => connectSSE('/ai/manus/chat', { message })
+export const chatWithManus = (message, chatId) => connectSSE('/ai/manus/chat', { message, chatId })
 
-export const listChatSessions = async (limit = 50) => {
-  const response = await request.get('/chat-sessions', { params: { limit } })
+export const listChatSessions = async (limit = 50, assistantType = '') => {
+  const params = { limit }
+  if (assistantType) {
+    params.assistantType = assistantType
+  }
+  const response = await request.get('/chat-sessions', { params })
   return response.data
 }
 
-export const createChatSession = async (title = '') => {
-  const response = await request.post('/chat-sessions', { title })
+export const createChatSession = async (title = '', assistantType = '') => {
+  const params = {}
+  if (assistantType) {
+    params.assistantType = assistantType
+  }
+  const response = await request.post('/chat-sessions', { title }, { params })
   return response.data
 }
 

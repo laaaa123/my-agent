@@ -179,6 +179,29 @@ public class ChatMemoryJdbcRepository {
         );
     }
 
+    public List<ChatSessionEntity> listSessionsByPrefix(String sessionIdPrefix, int limit) {
+        return jdbcTemplate.query("""
+                        SELECT session_id, title, created_at, updated_at, last_message_at, message_count
+                        FROM chat_session
+                        WHERE session_id LIKE CONCAT(?, '%%')
+                        ORDER BY COALESCE(last_message_at, created_at) DESC
+                        LIMIT ?
+                        """,
+                (rs, rowNum) -> {
+                    Timestamp lastMessageAt = rs.getTimestamp("last_message_at");
+                    return new ChatSessionEntity(
+                            rs.getString("session_id"),
+                            rs.getString("title"),
+                            rs.getTimestamp("created_at").toLocalDateTime(),
+                            rs.getTimestamp("updated_at").toLocalDateTime(),
+                            lastMessageAt == null ? null : lastMessageAt.toLocalDateTime(),
+                            rs.getInt("message_count")
+                    );
+                },
+                sessionIdPrefix, limit
+        );
+    }
+
     public Optional<ChatSessionEntity> findSession(String sessionId) {
         List<ChatSessionEntity> list = jdbcTemplate.query("""
                         SELECT session_id, title, created_at, updated_at, last_message_at, message_count

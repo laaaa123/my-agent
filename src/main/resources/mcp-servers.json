@@ -7,19 +7,8 @@
         "@amap/amap-maps-mcp-server"
       ],
       "env": {
-        "AMAP_MAPS_API_KEY": "你的 API Key"
+        "AMAP_MAPS_API_KEY": "999e66baca746f7ba3def14da9329c5a"
       }
-    },
-    "yu-image-search-mcp-server": {
-      "command": "java",
-      "args": [
-        "-Dspring.ai.mcp.server.stdio=true",
-        "-Dspring.main.web-application-type=none",
-        "-Dlogging.pattern.console=",
-        "-jar",
-        "yu-image-search-mcp-server/target/yu-image-search-mcp-server-0.0.1-SNAPSHOT.jar"
-      ],
-      "env": {}
     }
   }
 }

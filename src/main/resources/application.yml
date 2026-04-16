@@ -17,11 +17,15 @@ spring:
       api-key: ${DASHSCOPE_API_KEY:sk-fc5e7764d09d4a8d8ff8bf33623a4d72}
       chat:
         options:
-          model: qwen-max
+          model: qwen3-max
     ollama:
       base-url: http://localhost:11434
       chat:
         model: gemma3:1b
+    mcp:
+      client:
+        stdio:
+          servers-configuration: classpath:mcp-servers.json
 
 server:
   port: 8123
@@ -46,7 +50,7 @@ knife4j:
     language: zh_cn
 
 search-api:
-  api-key: ${SEARCH_API_KEY:你的APIKey}
+  api-key: ${SEARCH_API_KEY:S46nnDmuBbg2mym4PWet8UkT}
 
 logging:
   level:

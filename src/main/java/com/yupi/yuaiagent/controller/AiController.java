@@ -1,10 +1,8 @@
 package com.yupi.yuaiagent.controller;
 
-import com.yupi.yuaiagent.agent.YuManus;
 import com.yupi.yuaiagent.app.LoveApp;
+import com.yupi.yuaiagent.app.manus.service.ManusAppService;
 import jakarta.annotation.Resource;
-import org.springframework.ai.chat.model.ChatModel;
-import org.springframework.ai.tool.ToolCallback;
 import org.springframework.http.MediaType;
 import org.springframework.http.codec.ServerSentEvent;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -23,17 +21,14 @@ public class AiController {
     private LoveApp loveApp;
 
     @Resource
-    private ToolCallback[] allTools;
-
-    @Resource
-    private ChatModel dashscopeChatModel;
+    private ManusAppService manusAppService;
 
     /**
-     * 同步调用 AI 情感助手应用
+     * 同步调用情感助手。
      *
-     * @param message
-     * @param chatId
-     * @return
+     * @param message 用户消息
+     * @param chatId 会话标识
+     * @return 回复内容
      */
     @GetMapping({"/emotion_app/chat/sync", "/love_app/chat/sync"})
     public String doChatWithLoveAppSync(String message, String chatId) {
@@ -41,11 +36,11 @@ public class AiController {
     }
 
     /**
-     * SSE 流式调用 AI 情感助手应用
+     * 通过 Flux 方式流式调用情感助手。
      *
-     * @param message
-     * @param chatId
-     * @return
+     * @param message 用户消息
+     * @param chatId 会话标识
+     * @return 流式回复
      */
     @GetMapping(value = {"/emotion_app/chat/sse", "/love_app/chat/sse"}, produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public Flux<String> doChatWithLoveAppSSE(String message, String chatId) {
@@ -53,11 +48,11 @@ public class AiController {
     }
 
     /**
-     * SSE 流式调用 AI 情感助手应用
+     * 通过 ServerSentEvent 包装流式调用情感助手。
      *
-     * @param message
-     * @param chatId
-     * @return
+     * @param message 用户消息
+     * @param chatId 会话标识
+     * @return 流式回复事件
      */
     @GetMapping(value = {"/emotion_app/chat/server_sent_event", "/love_app/chat/server_sent_event"})
     public Flux<ServerSentEvent<String>> doChatWithLoveAppServerSentEvent(String message, String chatId) {
@@ -68,17 +63,15 @@ public class AiController {
     }
 
     /**
-     * SSE 流式调用 AI 情感助手应用
+     * 通过 SseEmitter 方式流式调用情感助手。
      *
-     * @param message
-     * @param chatId
-     * @return
+     * @param message 用户消息
+     * @param chatId 会话标识
+     * @return SSE 输出
      */
     @GetMapping(value = {"/emotion_app/chat/sse_emitter", "/love_app/chat/sse_emitter"})
     public SseEmitter doChatWithLoveAppServerSseEmitter(String message, String chatId) {
-        // 创建一个超时时间较长的 SseEmitter
-        SseEmitter sseEmitter = new SseEmitter(180000L); // 3 分钟超时
-        // 获取 Flux 响应式数据流并且直接通过订阅推送给 SseEmitter
+        SseEmitter sseEmitter = new SseEmitter(180000L);
         loveApp.doChatByStream(message, chatId)
                 .subscribe(chunk -> {
                     try {
@@ -87,19 +80,18 @@ public class AiController {
                         sseEmitter.completeWithError(e);
                     }
                 }, sseEmitter::completeWithError, sseEmitter::complete);
-        // 返回
         return sseEmitter;
     }
 
     /**
-     * 流式调用 Manus 超级智能体
+     * 流式调用智能体应用。
      *
-     * @param message
-     * @return
+     * @param message 用户消息
+     * @param chatId 会话标识
+     * @return SSE 输出
      */
-    @GetMapping("/manus/chat")
-    public SseEmitter doChatWithManus(String message) {
-        YuManus yuManus = new YuManus(allTools, dashscopeChatModel);
-        return yuManus.runStream(message);
+    @GetMapping(value = "/manus/chat", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    public SseEmitter doChatWithManus(String message, String chatId) {
+        return manusAppService.doChatByStream(message, chatId);
     }
 }

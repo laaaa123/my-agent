@@ -23,8 +23,9 @@ public class ChatSessionController {
     private ChatSessionService chatSessionService;
 
     @GetMapping
-    public List<ChatSessionVO> listSessions(@RequestParam(defaultValue = "50") int limit) {
-        List<ChatSessionEntity> sessions = chatSessionService.listSessions(limit);
+    public List<ChatSessionVO> listSessions(@RequestParam(defaultValue = "50") int limit,
+                                            @RequestParam(required = false) String assistantType) {
+        List<ChatSessionEntity> sessions = chatSessionService.listSessions(assistantType, limit);
         return sessions.stream()
                 .map(session -> new ChatSessionVO(
                         session.sessionId(),
@@ -38,9 +39,10 @@ public class ChatSessionController {
     }
 
     @PostMapping
-    public Map<String, String> createSession(@RequestBody(required = false) ChatSessionCreateRequest request) {
+    public Map<String, String> createSession(@RequestBody(required = false) ChatSessionCreateRequest request,
+                                             @RequestParam(required = false) String assistantType) {
         String title = request == null ? null : request.title();
-        String sessionId = chatSessionService.createSession(title);
+        String sessionId = chatSessionService.createSession(assistantType, title);
         return Map.of("sessionId", sessionId);
     }
 

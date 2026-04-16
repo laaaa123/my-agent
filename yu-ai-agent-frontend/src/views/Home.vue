@@ -1,67 +1,56 @@
 <template>
-  <div class="home-container">
-    <div class="header">
-      <div class="glitch-wrapper">
-        <h1 class="glitch-title">鱼皮AI超级智能体</h1>
+  <div class="home-page">
+    <div class="home-inner">
+      <div class="top-tip">
+        <span class="tip-dot"></span>
+        <span>多轮对话、知识检索与智能体执行一体化体验</span>
       </div>
-      <p class="subtitle">/ 探索AI的无限可能 /</p>
-      <div class="cyber-line"></div>
+
+      <section class="hero-section">
+        <div class="brand">companion</div>
+        <h1 class="headline">更温柔地陪你说话，也更认真地帮你解决问题</h1>
+        <p class="summary">
+          面向情感陪伴场景打造的 AI 助手平台，支持连续对话、知识问答、文档上传、工具调用与多步骤任务执行。
+        </p>
+      </section>
+
+      <section class="card-grid">
+        <article class="feature-card feature-card-primary" @click="navigateTo('/love-master')">
+          <div class="feature-icon">♡</div>
+          <div class="feature-title">情感陪伴助手</div>
+          <div class="feature-desc">
+            适合倾诉、关系分析、情绪疏导与温和建议，整体体验更贴近陪伴式对话。
+          </div>
+          <div class="feature-link">开始对话</div>
+        </article>
+
+        <article class="feature-card" @click="navigateTo('/super-agent')">
+          <div class="feature-icon feature-icon-calm">✦</div>
+          <div class="feature-title">超级智能体</div>
+          <div class="feature-desc">
+            适合多步骤任务处理，可联动外部工具完成搜索、分析、整理与内容生成。
+          </div>
+          <div class="feature-link">立即体验</div>
+        </article>
+      </section>
     </div>
-    
-    <div class="apps-container">
-      <div class="app-card" @click="navigateTo('/love-master')">
-        <div class="card-glow"></div>
-        <div class="app-icon love-icon">❤️</div>
-        <div class="app-info">
-          <div class="app-title">AI恋爱大师</div>
-          <div class="app-desc">智能情感顾问，帮你解答恋爱烦恼</div>
-        </div>
-        <div class="app-button">
-          <span class="btn-text">立即体验</span>
-          <span class="btn-icon">→</span>
-        </div>
-      </div>
-      
-      <div class="app-card" @click="navigateTo('/super-agent')">
-        <div class="card-glow"></div>
-        <div class="app-icon robot-icon">🤖</div>
-        <div class="app-info">
-          <div class="app-title">AI超级智能体</div>
-          <div class="app-desc">全能型AI助手，解决各类专业问题</div>
-        </div>
-        <div class="app-button">
-          <span class="btn-text">立即体验</span>
-          <span class="btn-icon">→</span>
-        </div>
-      </div>
-    </div>
-    
-    <div class="cyber-circles">
-      <div class="circle circle-1"></div>
-      <div class="circle circle-2"></div>
-      <div class="circle circle-3"></div>
-    </div>
-    
-    <AppFooter />
   </div>
 </template>
 
 <script setup>
 import { useRouter } from 'vue-router'
 import { useHead } from '@vueuse/head'
-import AppFooter from '../components/AppFooter.vue'
 
-// 设置页面标题和元数据
 useHead({
-  title: '鱼皮AI超级智能体应用平台 - 首页',
+  title: '情感对话智能体平台',
   meta: [
     {
       name: 'description',
-      content: '鱼皮AI超级智能体应用平台提供AI恋爱大师和AI超级智能体服务，满足您的各种AI对话需求'
+      content: '面向情感陪伴与智能任务执行场景的 AI 应用平台，支持多轮对话、知识问答、工具调用与智能体执行。'
     },
     {
       name: 'keywords',
-      content: 'AI智能体,AI应用,AI恋爱大师,AI助手,智能对话,鱼皮,AI超级智能体,首页'
+      content: '情感助手,AI 陪伴,智能体,RAG,Tool Calling,MCP'
     }
   ]
 })
@@ -74,451 +63,180 @@ const navigateTo = (path) => {
 </script>
 
 <style scoped>
-@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;700&display=swap');
-
-/* 全局样式变量 */
-:root {
-  --neon-blue: #00f0ff;
-  --neon-purple: #9000ff;
-  --neon-pink: #ff00d4;
-  --cyber-black: #0a0a12;
-  --cyber-dark: #111122;
-  --cyber-light: #edf7ff;
-}
-
-.home-container {
-  display: flex;
-  flex-direction: column;
+.home-page {
   min-height: 100vh;
-  background-color: var(--cyber-dark);
-  background-image: 
-    linear-gradient(0deg, rgba(8, 17, 34, 0.9), rgba(5, 8, 20, 0.9)),
-    url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100"><rect x="0" y="0" width="100" height="1" fill="%23111133" opacity="0.3"/><rect x="0" y="0" width="1" height="100" fill="%23111133" opacity="0.3"/></svg>');
-  background-size: auto, 40px 40px;
-  position: relative;
-  overflow: hidden;
+  padding: 36px 20px 56px;
+  background:
+    radial-gradient(circle at top left, rgba(252, 217, 204, 0.58), transparent 24%),
+    radial-gradient(circle at 92% 18%, rgba(204, 221, 242, 0.5), transparent 24%),
+    linear-gradient(180deg, #fffdfb 0%, #fff8f3 55%, #fff4ee 100%);
 }
 
-/* 赛博朋克风格标题 */
-.header {
-  padding: 70px 20px 50px;
-  text-align: center;
-  background-color: transparent;
-  position: relative;
-  z-index: 2;
-}
-
-.glitch-wrapper {
-  position: relative;
-  display: inline-block;
-  margin-bottom: 20px;
-}
-
-.glitch-title {
-  font-family: 'Orbitron', sans-serif;
-  font-size: 3.2rem;
-  font-weight: 700;
-  color: var(--cyber-light);
-  text-shadow: 
-    0 0 5px rgba(0, 240, 255, 0.7),
-    0 0 10px rgba(0, 240, 255, 0.5),
-    0 0 20px rgba(0, 240, 255, 0.3);
-  letter-spacing: 2px;
-  position: relative;
-  animation: glitch 3s infinite;
-}
-
-.glitch-title::before,
-.glitch-title::after {
-  content: '鱼皮AI超级智能体';
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  opacity: 0.8;
-}
-
-.glitch-title::before {
-  color: var(--neon-pink);
-  z-index: -1;
-  animation: glitch-anim 2s infinite;
-}
-
-.glitch-title::after {
-  color: var(--neon-blue);
-  z-index: -2;
-  animation: glitch-anim-2 3s infinite;
-}
-
-.subtitle {
-  font-family: 'Orbitron', sans-serif;
-  font-size: 1.2rem;
-  color: rgba(255, 255, 255, 0.7);
-  max-width: 600px;
-  margin: 0 auto 20px;
-  letter-spacing: 3px;
-  text-transform: uppercase;
-}
-
-.cyber-line {
-  height: 2px;
-  width: 80%;
-  max-width: 600px;
+.home-inner {
+  max-width: 1040px;
   margin: 0 auto;
-  background: linear-gradient(90deg, transparent, var(--neon-blue), transparent);
-  position: relative;
 }
 
-.cyber-line::before,
-.cyber-line::after {
-  content: '';
-  position: absolute;
-  top: 50%;
-  width: 10px;
-  height: 10px;
-  background-color: var(--neon-blue);
-  border-radius: 50%;
-  transform: translateY(-50%);
-  box-shadow: 0 0 10px 2px var(--neon-blue);
-}
-
-.cyber-line::before {
-  left: 20%;
-}
-
-.cyber-line::after {
-  right: 20%;
-}
-
-.apps-container {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: 50px;
-  max-width: 1200px;
-  margin: 60px auto;
-  padding: 0 20px;
-  flex: 1;
-  position: relative;
-  z-index: 2;
-}
-
-.app-card {
-  width: 340px;
-  background-color: rgba(17, 23, 41, 0.7);
-  backdrop-filter: blur(10px);
-  border-radius: 16px;
-  box-shadow: 
-    0 8px 32px rgba(0, 240, 255, 0.2),
-    inset 0 0 0 1px rgba(255, 255, 255, 0.1);
-  padding: 30px;
-  cursor: pointer;
-  transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-  display: flex;
-  flex-direction: column;
+.top-tip {
+  display: inline-flex;
   align-items: center;
-  position: relative;
-  overflow: hidden;
+  gap: 10px;
+  padding: 10px 16px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.72);
+  border: 1px solid rgba(224, 201, 189, 0.85);
+  color: #7c6760;
+  font-size: 14px;
+  box-shadow: 0 10px 30px rgba(204, 179, 167, 0.18);
 }
 
-.card-glow {
-  position: absolute;
-  top: -50%;
-  left: -50%;
-  width: 200%;
-  height: 200%;
-  background: radial-gradient(
-    circle at center,
-    rgba(var(--neon-blue-rgb), 0.1) 0%,
-    transparent 70%
-  );
-  opacity: 0;
-  transition: opacity 0.5s;
-  pointer-events: none;
-}
-
-.app-card:hover {
-  transform: translateY(-15px) scale(1.03);
-  box-shadow: 
-    0 15px 50px rgba(0, 240, 255, 0.3),
-    inset 0 0 0 1px rgba(0, 240, 255, 0.5);
-}
-
-.app-card:hover .card-glow {
-  opacity: 1;
-}
-
-.app-icon {
-  font-size: 4rem;
-  margin-bottom: 25px;
-  width: 90px;
-  height: 90px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+.tip-dot {
+  width: 8px;
+  height: 8px;
   border-radius: 50%;
-  position: relative;
-  z-index: 1;
+  background: linear-gradient(135deg, #e6917e, #d46c5c);
+  box-shadow: 0 0 0 5px rgba(228, 145, 126, 0.15);
 }
 
-.love-icon {
-  background: linear-gradient(135deg, #ff007a, #ff5722);
-  box-shadow: 0 0 20px rgba(255, 0, 122, 0.5);
-}
-
-.robot-icon {
-  background: linear-gradient(135deg, #00b2ff, #4f56ff);
-  box-shadow: 0 0 20px rgba(0, 178, 255, 0.5);
-}
-
-.app-info {
+.hero-section {
+  padding: 60px 0 44px;
   text-align: center;
-  margin-bottom: 30px;
-  width: 100%;
 }
 
-.app-title {
-  font-family: 'Orbitron', sans-serif;
-  font-size: 1.6rem;
-  font-weight: bold;
-  color: white;
-  margin-bottom: 12px;
-  text-shadow: 0 0 10px rgba(0, 240, 255, 0.5);
+.brand {
+  font-size: clamp(40px, 7vw, 72px);
+  line-height: 0.98;
+  font-weight: 700;
+  letter-spacing: -0.06em;
+  color: #dd7a66;
 }
 
-.app-desc {
-  font-size: 1rem;
-  color: rgba(255, 255, 255, 0.7);
-  line-height: 1.6;
+.headline {
+  max-width: 980px;
+  margin: 16px auto 0;
+  font-size: clamp(26px, 4.2vw, 46px);
+  line-height: 1.24;
+  letter-spacing: -0.04em;
+  color: #3d312c;
+  text-wrap: balance;
 }
 
-.app-button {
-  background: linear-gradient(90deg, #0088ff, #00b2ff);
-  color: white;
-  padding: 12px 28px;
-  border-radius: 30px;
-  font-weight: 500;
-  transition: all 0.3s;
-  margin-top: auto;
+.summary {
+  max-width: 760px;
+  margin: 18px auto 0;
+  font-size: 17px;
+  line-height: 1.8;
+  color: #7d6a63;
+}
+
+.card-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 26px;
+}
+
+.feature-card {
+  min-height: 240px;
+  padding: 30px;
+  border-radius: 26px;
+  background: rgba(255, 255, 255, 0.86);
+  border: 1px solid rgba(230, 214, 206, 0.95);
+  box-shadow: 0 20px 50px rgba(199, 167, 153, 0.16);
+  cursor: pointer;
+  transition: transform 0.22s ease, box-shadow 0.22s ease, border-color 0.22s ease;
+}
+
+.feature-card:hover {
+  transform: translateY(-6px);
+  box-shadow: 0 28px 64px rgba(196, 158, 142, 0.2);
+}
+
+.feature-card-primary:hover {
+  border-color: rgba(223, 133, 111, 0.6);
+}
+
+.feature-card:hover:not(.feature-card-primary) {
+  border-color: rgba(133, 168, 196, 0.6);
+}
+
+.feature-icon {
+  width: 62px;
+  height: 62px;
   display: flex;
   align-items: center;
-  position: relative;
-  overflow: hidden;
-  border: 1px solid rgba(0, 240, 255, 0.3);
+  justify-content: center;
+  border-radius: 18px;
+  background: linear-gradient(135deg, #ef9c88, #da6e5c);
+  color: #fff;
+  font-size: 30px;
+  box-shadow: 0 16px 34px rgba(221, 114, 93, 0.24);
 }
 
-.app-button::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: -100%;
-  width: 100%;
-  height: 100%;
-  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
-  transition: left 0.7s;
+.feature-icon-calm {
+  background: linear-gradient(135deg, #99b9d5, #7e9cb7);
+  box-shadow: 0 16px 34px rgba(126, 156, 183, 0.22);
 }
 
-.app-button:hover {
-  box-shadow: 0 0 15px rgba(0, 178, 255, 0.7);
-  transform: scale(1.05);
+.feature-title {
+  margin-top: 26px;
+  font-size: 32px;
+  font-weight: 700;
+  letter-spacing: -0.04em;
+  color: #3c312d;
 }
 
-.app-button:hover::before {
-  left: 100%;
+.feature-desc {
+  margin-top: 14px;
+  font-size: 16px;
+  line-height: 1.85;
+  color: #7e6d66;
 }
 
-.btn-text {
-  margin-right: 8px;
-  letter-spacing: 1px;
+.feature-link {
+  margin-top: 28px;
+  font-size: 17px;
+  font-weight: 600;
+  color: #4b3d38;
 }
 
-.btn-icon {
-  font-size: 1.2rem;
-  transition: transform 0.3s;
-}
-
-.app-button:hover .btn-icon {
-  transform: translateX(4px);
-}
-
-/* 背景圆圈动画 */
-.cyber-circles {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  overflow: hidden;
-  z-index: 1;
-}
-
-.circle {
-  position: absolute;
-  border-radius: 50%;
-  opacity: 0.15;
-}
-
-.circle-1 {
-  width: 300px;
-  height: 300px;
-  top: -100px;
-  right: -100px;
-  background: linear-gradient(135deg, var(--neon-blue), var(--neon-purple));
-  animation: float 15s infinite alternate;
-}
-
-.circle-2 {
-  width: 500px;
-  height: 500px;
-  bottom: -200px;
-  left: -200px;
-  background: linear-gradient(135deg, var(--neon-purple), var(--neon-pink));
-  animation: float 20s infinite alternate-reverse;
-}
-
-.circle-3 {
-  width: 200px;
-  height: 200px;
-  top: 40%;
-  right: 15%;
-  background: linear-gradient(135deg, var(--neon-pink), var(--neon-blue));
-  animation: float 12s infinite alternate;
-}
-
-/* 动画效果 */
-@keyframes float {
-  0% {
-    transform: translate(0, 0) rotate(0deg);
+@media (max-width: 900px) {
+  .hero-section {
+    padding: 44px 0 34px;
   }
-  100% {
-    transform: translate(50px, 50px) rotate(10deg);
+
+  .card-grid {
+    grid-template-columns: 1fr;
   }
 }
 
-@keyframes glitch {
-  0% {
-    text-shadow: 
-      0 0 5px rgba(0, 240, 255, 0.7),
-      0 0 10px rgba(0, 240, 255, 0.5);
+@media (max-width: 640px) {
+  .home-page {
+    padding: 20px 14px 36px;
   }
-  50% {
-    text-shadow: 
-      0 0 5px rgba(0, 240, 255, 0.7),
-      0 0 10px rgba(0, 240, 255, 0.5),
-      0 0 20px rgba(0, 240, 255, 0.3);
-  }
-  100% {
-    text-shadow: 
-      0 0 5px rgba(0, 240, 255, 0.7),
-      0 0 10px rgba(0, 240, 255, 0.5);
-  }
-}
 
-@keyframes glitch-anim {
-  0%, 100% {
-    transform: translate(0);
-  }
-  20% {
-    transform: translate(-5px, 5px);
-  }
-  40% {
-    transform: translate(-5px, -5px);
-  }
-  60% {
-    transform: translate(5px, 5px);
-  }
-  80% {
-    transform: translate(5px, -5px);
-  }
-}
-
-@keyframes glitch-anim-2 {
-  0%, 100% {
-    transform: translate(0);
-  }
-  20% {
-    transform: translate(3px, -3px);
-  }
-  40% {
-    transform: translate(3px, 3px);
-  }
-  60% {
-    transform: translate(-3px, -3px);
-  }
-  80% {
-    transform: translate(-3px, 3px);
-  }
-}
-
-/* 响应式设计 */
-@media (max-width: 768px) {
-  .glitch-title {
-    font-size: 2.5rem;
-  }
-  
-  .subtitle {
-    font-size: 1rem;
-  }
-  
-  .apps-container {
-    gap: 30px;
-    margin: 40px auto;
-  }
-  
-  .app-card {
+  .top-tip {
     width: 100%;
-    max-width: 420px;
-    padding: 25px;
+    justify-content: center;
+    text-align: center;
+    line-height: 1.6;
   }
-  
-  .app-icon {
-    font-size: 3.5rem;
-    width: 80px;
-    height: 80px;
-  }
-}
 
-@media (max-width: 480px) {
-  .header {
-    padding: 50px 15px 40px;
+  .hero-section {
+    padding: 34px 0 24px;
   }
-  
-  .glitch-title {
-    font-size: 2rem;
+
+  .summary {
+    font-size: 15px;
+    line-height: 1.8;
   }
-  
-  .subtitle {
-    font-size: 0.9rem;
-    letter-spacing: 2px;
+
+  .feature-card {
+    min-height: 220px;
+    padding: 24px;
   }
-  
-  .apps-container {
-    margin: 30px auto;
-    padding: 0 15px;
-  }
-  
-  .app-card {
-    padding: 20px;
-  }
-  
-  .app-icon {
-    font-size: 3rem;
-    margin-bottom: 20px;
-    width: 70px;
-    height: 70px;
-  }
-  
-  .app-title {
-    font-size: 1.4rem;
-  }
-  
-  .app-desc {
-    font-size: 0.9rem;
-  }
-  
-  .circle-1, .circle-2, .circle-3 {
-    opacity: 0.1;
+
+  .feature-title {
+    font-size: 26px;
   }
 }
-</style> 
+</style>

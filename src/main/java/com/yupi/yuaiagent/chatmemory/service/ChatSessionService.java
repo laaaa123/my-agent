@@ -10,10 +10,13 @@ import java.util.List;
 import java.util.UUID;
 
 /**
- * 会话管理服务。
+ * Session management service.
  */
 @Service
 public class ChatSessionService {
+
+    public static final String ASSISTANT_TYPE_LOVE = "love";
+    public static final String ASSISTANT_TYPE_MANUS = "manus";
 
     private final ChatMemoryJdbcRepository repository;
 
@@ -22,7 +25,11 @@ public class ChatSessionService {
     }
 
     public String createSession(String title) {
-        String sessionId = "love_" + UUID.randomUUID().toString().replace("-", "").substring(0, 12);
+        return createSession(ASSISTANT_TYPE_LOVE, title);
+    }
+
+    public String createSession(String assistantType, String title) {
+        String sessionId = resolvePrefix(assistantType) + UUID.randomUUID().toString().replace("-", "").substring(0, 12);
         String resolvedTitle = resolveTitle(title);
         LocalDateTime now = LocalDateTime.now();
         repository.createSessionIfAbsent(sessionId, resolvedTitle, now);
@@ -30,8 +37,16 @@ public class ChatSessionService {
     }
 
     public List<ChatSessionEntity> listSessions(int limit) {
+        return listSessions(null, limit);
+    }
+
+    public List<ChatSessionEntity> listSessions(String assistantType, int limit) {
         int safeLimit = Math.max(1, Math.min(limit, 200));
-        return repository.listSessions(safeLimit);
+        String prefix = resolvePrefixOrNull(assistantType);
+        if (prefix == null) {
+            return repository.listSessions(safeLimit);
+        }
+        return repository.listSessionsByPrefix(prefix, safeLimit);
     }
 
     public List<ChatMessageEntity> listMessages(String sessionId, int limit) {
@@ -49,5 +64,35 @@ public class ChatSessionService {
         }
         String trimmed = title.trim();
         return trimmed.length() > 40 ? trimmed.substring(0, 40) : trimmed;
+    }
+
+    private String resolvePrefix(String assistantType) {
+        String normalized = normalizeAssistantType(assistantType);
+        if (normalized == null || ASSISTANT_TYPE_LOVE.equals(normalized)) {
+            return "love_";
+        }
+        if (ASSISTANT_TYPE_MANUS.equals(normalized)) {
+            return "manus_";
+        }
+        return "love_";
+    }
+
+    private String resolvePrefixOrNull(String assistantType) {
+        String normalized = normalizeAssistantType(assistantType);
+        if (normalized == null) {
+            return null;
+        }
+        return resolvePrefix(normalized);
+    }
+
+    private String normalizeAssistantType(String assistantType) {
+        if (assistantType == null || assistantType.isBlank()) {
+            return null;
+        }
+        String normalized = assistantType.trim().toLowerCase();
+        if (ASSISTANT_TYPE_MANUS.equals(normalized)) {
+            return ASSISTANT_TYPE_MANUS;
+        }
+        return ASSISTANT_TYPE_LOVE;
     }
 }

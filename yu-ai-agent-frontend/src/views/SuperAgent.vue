@@ -1,286 +1,512 @@
 <template>
-  <div class="super-agent-container">
-    <div class="header">
+  <div class="assistant-container">
+    <header class="header">
       <div class="back-button" @click="goBack">返回</div>
-      <h1 class="title">AI超级智能体</h1>
-      <div class="placeholder"></div>
-    </div>
-    
-    <div class="content-wrapper">
-      <div class="chat-area">
-        <ChatRoom 
-          :messages="messages" 
+      <h1 class="title">AI情感助手</h1>
+      <div class="chat-id">会话ID: {{ chatId || '未选择' }}</div>
+    </header>
+
+    <div class="main-layout">
+      <aside class="session-sidebar">
+        <button class="new-session-button" type="button" @click="handleCreateSession">
+          + 新建会话
+        </button>
+
+        <div class="session-list">
+          <div
+            v-for="session in sessions"
+            :key="session.sessionId"
+            class="session-item"
+            :class="{ active: session.sessionId === chatId }"
+            @click="switchSession(session.sessionId)"
+          >
+            <div class="session-item-title">{{ session.title || '新会话' }}</div>
+            <div class="session-item-meta">
+              <span>{{ formatDateTime(session.lastMessageAt || session.createdAt) }}</span>
+              <span>{{ session.messageCount || 0 }} 条</span>
+            </div>
+            <button class="session-delete" type="button" @click.stop="handleDeleteSession(session.sessionId)">
+              删除
+            </button>
+          </div>
+        </div>
+      </aside>
+
+      <section class="chat-panel">
+        <ChatRoom
+          :messages="messages"
           :connection-status="connectionStatus"
+          :show-upload="true"
+          :uploading="uploading"
           ai-type="super"
           @send-message="sendMessage"
+          @upload-file="uploadFile"
         />
-      </div>
-    </div>
-    
-    <div class="footer-container">
-      <AppFooter />
+      </section>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted, onBeforeUnmount } from 'vue'
+import { onBeforeUnmount, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { useHead } from '@vueuse/head'
 import ChatRoom from '../components/ChatRoom.vue'
-import AppFooter from '../components/AppFooter.vue'
-import { chatWithManus } from '../api'
+import {
+  chatWithManus,
+  createChatSession,
+  deleteChatSession,
+  listChatMessages,
+  listChatSessions,
+  uploadKnowledgeDocument
+} from '../api'
 
-// 设置页面标题和元数据
-useHead({
-  title: 'AI超级智能体 - 鱼皮AI超级智能体应用平台',
-  meta: [
-    {
-      name: 'description',
-      content: 'AI超级智能体是鱼皮AI超级智能体应用平台的全能助手，能解答各类专业问题，提供精准建议和解决方案'
-    },
-    {
-      name: 'keywords',
-      content: 'AI超级智能体,智能助手,专业问答,AI问答,专业建议,鱼皮,AI智能体'
-    }
-  ]
-})
+const SESSION_STORAGE_KEY = 'super_agent_current_session_id'
+const ASSISTANT_TYPE = 'manus'
 
 const router = useRouter()
+const sessions = ref([])
 const messages = ref([])
+const chatId = ref('')
 const connectionStatus = ref('disconnected')
+const uploading = ref(false)
 let eventSource = null
 
-// 添加消息到列表
-const addMessage = (content, isUser, type = '') => {
+const addMessage = (content, isUser, type = '', extra = {}) => {
   messages.value.push({
     content,
     isUser,
     type,
-    time: new Date().getTime()
+    time: Date.now(),
+    ...extra
   })
 }
 
-// 发送消息
-const sendMessage = (message) => {
-  addMessage(message, true, 'user-question')
-  
-  // 连接SSE
+const closeEventSource = () => {
   if (eventSource) {
     eventSource.close()
+    eventSource = null
   }
-  
-  // 设置连接状态
-  connectionStatus.value = 'connecting'
-  
-  // 临时存储
-  let messageBuffer = []; // 用于存储SSE消息的缓冲区
-  let lastBubbleTime = Date.now(); // 上一个气泡的创建时间
-  let isFirstResponse = true; // 是否是第一次响应
-  
-  const chineseEndPunctuation = ['。', '！', '？', '…']; // 中文句子结束标点
-  const minBubbleInterval = 800; // 气泡最小间隔时间(毫秒)
-  
-  // 创建消息气泡的函数
-  const createBubble = (content, type = 'ai-answer') => {
-    if (!content.trim()) return;
-    
-    // 添加适当的延迟，使消息显示更自然
-    const now = Date.now();
-    const timeSinceLastBubble = now - lastBubbleTime;
-    
-    if (isFirstResponse) {
-      // 第一条消息立即显示
-      addMessage(content, false, type);
-      isFirstResponse = false;
-    } else if (timeSinceLastBubble < minBubbleInterval) {
-      // 如果与上一气泡间隔太短，添加一个延迟
-      setTimeout(() => {
-        addMessage(content, false, type);
-      }, minBubbleInterval - timeSinceLastBubble);
-    } else {
-      // 正常添加消息
-      addMessage(content, false, type);
-    }
-    
-    lastBubbleTime = now;
-    messageBuffer = []; // 清空缓冲区
-  };
-  
-  eventSource = chatWithManus(message)
-  
-  // 监听SSE消息
-  eventSource.onmessage = (event) => {
-    const data = event.data
-    
-    if (data && data !== '[DONE]') {
-      messageBuffer.push(data);
-      
-      // 检查是否应该创建新气泡
-      const combinedText = messageBuffer.join('');
-      
-      // 句子结束或消息长度达到阈值
-      const lastChar = data.charAt(data.length - 1);
-      const hasCompleteSentence = chineseEndPunctuation.includes(lastChar) || data.includes('\n\n');
-      const isLongEnough = combinedText.length > 40;
-      
-      if (hasCompleteSentence || isLongEnough) {
-        createBubble(combinedText);
-      }
-    }
-    
-    if (data === '[DONE]') {
-      // 如果还有未显示的内容，创建最后一个气泡
-      if (messageBuffer.length > 0) {
-        const remainingContent = messageBuffer.join('');
-        createBubble(remainingContent, 'ai-final');
-      }
-      
-      // 完成后关闭连接
-      connectionStatus.value = 'disconnected'
-      eventSource.close()
-    }
+}
+
+const sanitizeAiMessage = (rawText) => {
+  if (!rawText) {
+    return ''
   }
-  
-  // 监听SSE错误
-  eventSource.onerror = (error) => {
-    console.error('SSE Error:', error)
-    connectionStatus.value = 'error'
-    eventSource.close()
-    
-    // 如果出错时有未显示的内容，也创建气泡
-    if (messageBuffer.length > 0) {
-      const remainingContent = messageBuffer.join('');
-      createBubble(remainingContent, 'ai-error');
+  return rawText
+    .replace(/\r\n/g, '\n')
+    .replace(/\r/g, '\n')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim()
+}
+
+const mapHistoryMessages = (historyMessages = []) =>
+  historyMessages
+    .filter((item) => item && item.content)
+    .map((item) => ({
+      content: item.content,
+      isUser: item.role === 'user',
+      type: item.role === 'user' ? 'user-question' : 'ai-history',
+      time: item.createdAt ? new Date(item.createdAt).getTime() : Date.now()
+    }))
+
+const refreshSessions = async () => {
+  sessions.value = await listChatSessions(100, ASSISTANT_TYPE)
+}
+
+const loadCurrentSessionMessages = async () => {
+  if (!chatId.value) {
+    messages.value = []
+    return
+  }
+  const historyMessages = await listChatMessages(chatId.value, 500)
+  messages.value = mapHistoryMessages(historyMessages)
+}
+
+const ensureGuideMessages = async () => {
+  if (messages.value.length > 0) {
+    return
+  }
+  addMessage('你好，我是AI情感助手。我可以处理复杂任务、调用工具、检索知识，并给出最终结果。', false, 'ai-answer')
+}
+
+const setCurrentSessionId = (sessionId) => {
+  chatId.value = sessionId
+  if (sessionId) {
+    localStorage.setItem(SESSION_STORAGE_KEY, sessionId)
+  } else {
+    localStorage.removeItem(SESSION_STORAGE_KEY)
+  }
+}
+
+const createAndSwitchSession = async (title = '新会话') => {
+  const created = await createChatSession(title, ASSISTANT_TYPE)
+  if (!created || !created.sessionId) {
+    throw new Error('创建会话失败')
+  }
+  await refreshSessions()
+  setCurrentSessionId(created.sessionId)
+  await loadCurrentSessionMessages()
+  await ensureGuideMessages()
+}
+
+const switchSession = async (sessionId) => {
+  if (!sessionId || sessionId === chatId.value) {
+    return
+  }
+  closeEventSource()
+  connectionStatus.value = 'disconnected'
+  setCurrentSessionId(sessionId)
+  await loadCurrentSessionMessages()
+  await ensureGuideMessages()
+}
+
+const handleCreateSession = async () => {
+  closeEventSource()
+  connectionStatus.value = 'disconnected'
+  await createAndSwitchSession('新会话')
+}
+
+const handleDeleteSession = async (sessionId) => {
+  await deleteChatSession(sessionId)
+  await refreshSessions()
+  if (sessionId !== chatId.value) {
+    return
+  }
+  if (sessions.value.length > 0) {
+    await switchSession(sessions.value[0].sessionId)
+  } else {
+    await createAndSwitchSession('新会话')
+  }
+}
+
+const createManusAssistantMessage = () => ({
+  content: '',
+  isUser: false,
+  type: 'ai-answer',
+  time: Date.now(),
+  reasoning: [],
+  reasoningStatus: 'thinking',
+  reasoningStartedAt: null,
+  reasoningElapsedMs: null
+})
+
+const tryParseManusEvent = (raw) => {
+  if (!raw || typeof raw !== 'string') {
+    return null
+  }
+  const trimmed = raw.trim()
+  if (!trimmed.startsWith('{')) {
+    return null
+  }
+  try {
+    return JSON.parse(trimmed)
+  } catch {
+    return null
+  }
+}
+
+const appendReasoning = (message, content) => {
+  const normalized = sanitizeAiMessage(content)
+  if (!normalized) {
+    return
+  }
+  if (!Array.isArray(message.reasoning)) {
+    message.reasoning = []
+  }
+  const lastItem = message.reasoning[message.reasoning.length - 1]
+  if (lastItem !== normalized) {
+    message.reasoning.push(normalized)
+  }
+}
+
+const applyManusEvent = (message, payload) => {
+  switch (payload.type) {
+    case 'reasoning_start':
+      message.reasoningStatus = 'thinking'
+      if (!message.reasoningStartedAt) {
+        message.reasoningStartedAt = Date.now()
+      }
+      break
+    case 'reasoning_step':
+    case 'tool_start':
+    case 'tool_done':
+      if (!message.reasoningStartedAt) {
+        message.reasoningStartedAt = Date.now()
+      }
+      message.reasoningStatus = 'thinking'
+      appendReasoning(message, payload.content)
+      break
+    case 'reasoning_done':
+      message.reasoningStatus = 'done'
+      if (message.reasoningStartedAt) {
+        message.reasoningElapsedMs = Date.now() - message.reasoningStartedAt
+      }
+      break
+    case 'answer_chunk':
+      message.content = `${message.content || ''}${payload.content || ''}`
+      break
+    case 'answer_done':
+      message.content = sanitizeAiMessage(message.content)
+      break
+    case 'agent_error':
+      message.reasoningStatus = 'done'
+      if (message.reasoningStartedAt) {
+        message.reasoningElapsedMs = Date.now() - message.reasoningStartedAt
+      }
+      message.content = sanitizeAiMessage(`${message.content || ''}${payload.content || ''}`)
+      break
+    default:
+      break
+  }
+}
+
+const finalizeAssistantMessage = (message) => {
+  message.content = sanitizeAiMessage(message.content)
+  if (Array.isArray(message.reasoning) && message.reasoning.length > 0) {
+    message.reasoningStatus = 'done'
+    if (message.reasoningStartedAt && !message.reasoningElapsedMs) {
+      message.reasoningElapsedMs = Date.now() - message.reasoningStartedAt
     }
   }
 }
 
-// 返回主页
+const sendMessage = async (message) => {
+  if (!chatId.value) {
+    await createAndSwitchSession(message)
+  }
+  addMessage(message, true, 'user-question')
+
+  closeEventSource()
+  const aiMessage = createManusAssistantMessage()
+  messages.value.push(aiMessage)
+
+  connectionStatus.value = 'connecting'
+  eventSource = chatWithManus(message, chatId.value)
+
+  eventSource.onmessage = async (event) => {
+    const data = event.data
+    const payload = tryParseManusEvent(data)
+
+    if (payload) {
+      if (payload.type === 'done') {
+        finalizeAssistantMessage(aiMessage)
+        connectionStatus.value = 'disconnected'
+        closeEventSource()
+        await refreshSessions()
+        return
+      }
+      applyManusEvent(aiMessage, payload)
+      return
+    }
+
+    if (data && data !== '[DONE]') {
+      aiMessage.content += data
+    }
+    if (data === '[DONE]') {
+      finalizeAssistantMessage(aiMessage)
+      connectionStatus.value = 'disconnected'
+      closeEventSource()
+      await refreshSessions()
+    }
+  }
+
+  eventSource.onerror = async (error) => {
+    console.error('SSE Error:', error)
+    connectionStatus.value = 'error'
+    finalizeAssistantMessage(aiMessage)
+    closeEventSource()
+    await refreshSessions()
+  }
+}
+
+const uploadFile = async (file) => {
+  if (!chatId.value) {
+    await createAndSwitchSession('新会话')
+  }
+  uploading.value = true
+  try {
+    const result = await uploadKnowledgeDocument(file, chatId.value)
+    const successName = result?.filename || file.name
+    const chunkCount = Number(result?.chunkCount || 0)
+    const uploadMessage = result?.message || '上传成功'
+    const isSuccess = Boolean(result?.success)
+    const messageType = isSuccess ? 'ai-final' : 'ai-error'
+    addMessage(`${uploadMessage}：${successName}（入库分片：${chunkCount}）`, false, messageType)
+  } catch (error) {
+    console.error('Upload Error:', error)
+    addMessage('文档上传失败，请检查文件格式或后端服务日志。', false, 'ai-error')
+  } finally {
+    uploading.value = false
+  }
+}
+
 const goBack = () => {
   router.push('/')
 }
 
-// 页面加载时添加欢迎消息
-onMounted(() => {
-  // 添加欢迎消息
-  addMessage('你好，我是AI超级智能体。我可以解答各类问题，提供专业建议，请问有什么可以帮助你的吗？', false)
+const formatDateTime = (value) => {
+  if (!value) {
+    return '刚刚'
+  }
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) {
+    return '刚刚'
+  }
+  return date.toLocaleString('zh-CN', {
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit'
+  })
+}
+
+onMounted(async () => {
+  await refreshSessions()
+  const cachedSessionId = localStorage.getItem(SESSION_STORAGE_KEY)
+  if (cachedSessionId && sessions.value.some((item) => item.sessionId === cachedSessionId)) {
+    setCurrentSessionId(cachedSessionId)
+    await loadCurrentSessionMessages()
+    await ensureGuideMessages()
+    return
+  }
+  if (sessions.value.length > 0) {
+    setCurrentSessionId(sessions.value[0].sessionId)
+    await loadCurrentSessionMessages()
+    await ensureGuideMessages()
+    return
+  }
+  await createAndSwitchSession('新会话')
 })
 
-// 组件销毁前关闭SSE连接
 onBeforeUnmount(() => {
-  if (eventSource) {
-    eventSource.close()
-  }
+  closeEventSource()
 })
 </script>
 
 <style scoped>
-.super-agent-container {
+.assistant-container {
+  height: 100vh;
+  background-color: #f5f8ff;
   display: flex;
   flex-direction: column;
-  min-height: 100vh;
-  background-color: #f9fbff;
+  overflow: hidden;
 }
 
 .header {
-  display: grid;
-  grid-template-columns: 1fr auto 1fr;
+  display: flex;
+  justify-content: space-between;
   align-items: center;
   padding: 16px 24px;
   background-color: #3f51b5;
-  color: white;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-  position: sticky;
-  top: 0;
-  z-index: 10;
+  color: #fff;
 }
 
 .back-button {
-  font-size: 16px;
   cursor: pointer;
-  display: flex;
-  align-items: center;
-  transition: opacity 0.2s;
-  justify-self: start;
-}
-
-.back-button:hover {
-  opacity: 0.8;
-}
-
-.back-button:before {
-  content: '←';
-  margin-right: 8px;
 }
 
 .title {
-  font-size: 20px;
-  font-weight: bold;
   margin: 0;
-  text-align: center;
-  justify-self: center;
+  font-size: 20px;
+  font-weight: 700;
 }
 
-.placeholder {
-  width: 1px;
-  justify-self: end;
+.chat-id {
+  font-size: 14px;
+  opacity: 0.9;
 }
 
-.content-wrapper {
+.main-layout {
+  flex: 1;
+  display: flex;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.session-sidebar {
+  width: 270px;
+  flex-shrink: 0;
+  background-color: #fff;
+  border-right: 1px solid #dbe3ef;
+  padding: 12px;
   display: flex;
   flex-direction: column;
-  flex: 1;
+  min-height: 0;
 }
 
-.chat-area {
-  flex: 1;
-  padding: 16px;
+.new-session-button {
+  border: none;
+  border-radius: 16px;
+  background-color: #3f51b5;
+  color: #fff;
+  padding: 8px 12px;
+  cursor: pointer;
+}
+
+.session-list {
+  margin-top: 10px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.session-item {
+  border: 1px solid #d7e0f2;
+  border-radius: 8px;
+  padding: 8px;
+  cursor: pointer;
+  background: #fff;
+}
+
+.session-item.active {
+  border-color: #3f51b5;
+  background-color: #eef1ff;
+}
+
+.session-item-title {
+  font-size: 14px;
+  color: #333;
+  white-space: nowrap;
   overflow: hidden;
-  position: relative;
-  /* 设置最小高度确保内容显示正常 */
-  min-height: calc(100vh - 56px - 180px); /* 100vh减去头部高度和页脚高度 */
-  margin-bottom: 16px; /* 为页脚留出空间 */
+  text-overflow: ellipsis;
 }
 
-.footer-container {
-  margin-top: auto;
+.session-item-meta {
+  margin-top: 4px;
+  display: flex;
+  justify-content: space-between;
+  color: #777;
+  font-size: 12px;
 }
 
-/* 响应式样式 */
-@media (max-width: 768px) {
-  .header {
-    padding: 12px 16px;
-  }
-  
-  .title {
-    font-size: 18px;
-  }
-  
-  .chat-area {
-    padding: 12px;
-    min-height: calc(100vh - 48px - 160px); /* 调整计算值 */
-    margin-bottom: 12px;
-  }
+.session-delete {
+  margin-top: 6px;
+  border: none;
+  background: transparent;
+  color: #3f51b5;
+  padding: 0;
+  cursor: pointer;
+  font-size: 12px;
 }
 
-@media (max-width: 480px) {
-  .header {
-    padding: 10px 12px;
+.chat-panel {
+  flex: 1;
+  min-width: 0;
+  padding: 12px;
+  overflow: hidden;
+}
+
+@media (max-width: 960px) {
+  .main-layout {
+    flex-direction: column;
   }
-  
-  .back-button {
-    font-size: 14px;
-  }
-  
-  .title {
-    font-size: 16px;
-  }
-  
-  .chat-area {
-    padding: 8px;
-    min-height: calc(100vh - 42px - 150px); /* 再次调整计算值 */
-    margin-bottom: 8px;
+
+  .session-sidebar {
+    width: 100%;
+    border-right: none;
+    border-bottom: 1px solid #dbe3ef;
+    min-height: 220px;
   }
 }
-</style> 
+</style>

@@ -7,6 +7,8 @@ import com.yupi.yuaiagent.app.knowledge.KnowledgeRetrievalService;
 import com.yupi.yuaiagent.app.prompt.EmotionalAssistantPrompts;
 import com.yupi.yuaiagent.app.router.HybridIntentRouter;
 import com.yupi.yuaiagent.app.router.model.IntentRoutingResult;
+import com.yupi.yuaiagent.tools.routing.ToolRoutingDecision;
+import com.yupi.yuaiagent.tools.routing.UnifiedToolRegistry;
 import jakarta.annotation.Resource;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -47,6 +49,9 @@ public class LoveApp {
 
     @Resource
     private KnowledgeRetrievalService knowledgeRetrievalService;
+
+    @Resource
+    private UnifiedToolRegistry unifiedToolRegistry;
 
     public LoveApp(ChatModel dashscopeChatModel, ChatMemory chatMemory) {
         this.chatClient = ChatClient.builder(dashscopeChatModel)
@@ -186,12 +191,15 @@ public class LoveApp {
     }
 
     private String doToolChatByCall(String message, String chatId) {
+        ToolRoutingDecision routingDecision = unifiedToolRegistry.resolveForMessage(message);
+        log.info("工具二级路由：capabilities={}, tools={}",
+                routingDecision.capabilities(), routingDecision.toolNames());
         ChatResponse chatResponse = chatClient.prompt()
-                .system(EmotionalAssistantPrompts.TOOL_SYSTEM_PROMPT)
+                .system(routingDecision.systemPrompt())
                 .user(message)
                 .advisors(spec -> spec.param(CHAT_MEMORY_CONVERSATION_ID_KEY, chatId))
                 .advisors(new MyLoggerAdvisor())
-                .toolCallbacks(allTools)
+                .toolCallbacks(routingDecision.callbacks())
                 .call()
                 .chatResponse();
         String content = formatAnswer(chatResponse.getResult().getOutput().getText());
@@ -200,12 +208,15 @@ public class LoveApp {
     }
 
     private Flux<String> doToolChatByStream(String message, String chatId) {
+        ToolRoutingDecision routingDecision = unifiedToolRegistry.resolveForMessage(message);
+        log.info("工具二级路由：capabilities={}, tools={}",
+                routingDecision.capabilities(), routingDecision.toolNames());
         return chatClient.prompt()
-                .system(EmotionalAssistantPrompts.TOOL_SYSTEM_PROMPT)
+                .system(routingDecision.systemPrompt())
                 .user(message)
                 .advisors(spec -> spec.param(CHAT_MEMORY_CONVERSATION_ID_KEY, chatId))
                 .advisors(new MyLoggerAdvisor())
-                .toolCallbacks(allTools)
+                .toolCallbacks(routingDecision.callbacks())
                 .stream()
                 .content()
                 .map(this::formatChunk);
