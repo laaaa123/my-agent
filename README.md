@@ -7,17 +7,20 @@
 
 ## 📖 项目介绍
 本项目是一套面向真实业务场景的企业级 AI 应用工程，核心由两大模块组成，绝非简单 Demo，旨在沉淀可复用、可扩展的企业级 AI 应用架构，覆盖对话编排、知识检索策略、会话隔离、可观测性、前后端协同与工程规范全链路，为 AI 应用工程化落地提供完整实践方案。
-![总览](./tmp/总览.png)
+<img width="1160" height="721" alt="总览" src="https://github.com/user-attachments/assets/02b69e2d-5898-43a7-ba22-8bfab1c8c549" />
+
 
 ### 1. AI 情感助手应用
 支持多轮对话、会话记忆持久化、会话级知识库问答、工具调用与流式输出，为用户在情感沟通、关系决策、情绪疏导等场景提供专业、可信赖的 AI 辅助能力。
-![情感助手](./tmp/情感助手.png)
+<img width="1914" height="725" alt="情感助手" src="https://github.com/user-attachments/assets/5ceddc7f-68d9-4d7b-a56d-ebeb7f8d053a" />
+
 
 
 ### 2. AI 超级智能体
 具备任务拆解、自主规划、多工具协作执行能力，可灵活扩展至信息检索、网页分析、内容生成、结构化文档输出等复杂业务场景，实现从“对话式 AI”到“任务式智能体”的能力跃迁。
-![智能体](./tmp/智能体.png)
-![智能体2](./tmp/智能体2.png)
+<img width="1910" height="730" alt="智能体" src="https://github.com/user-attachments/assets/bd9c6d66-001b-47e1-8c1b-195f5bd7404c" />
+<img width="1066" height="530" alt="智能体2" src="https://github.com/user-attachments/assets/a42ccdbb-ff51-4b8e-984d-841cd2cd8f92" />
+
 
 ## ✨ 核心功能特性
 ### 1. AI 情感助手
