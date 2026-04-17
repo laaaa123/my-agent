@@ -131,8 +131,9 @@
 ## 📌 项目价值
 本项目完整覆盖了企业级 AI 应用从 0 到 1 的工程化落地全流程，可直接作为简历核心亮点项目，沉淀的架构设计、问题解决方案（如会话隔离、RAG 召回策略）可直接复用在各类 AI Agent、RAG 应用开发中，为求职与工程落地提供双重支撑。
 
-```text
+
 ## 📌 项目代码介绍
+```text
 yu-ai-agent-master/
 ├─ src/
 │  ├─ main/
@@ -142,177 +143,184 @@ yu-ai-agent-master/
 │  │  │     │  作用：Spring Boot 启动入口。
 │  │  │     │
 │  │  │     ├─ advisor/
-│  │  │     │  作用：AI 调用过程中的增强器 / 拦截器。
+│  │  │     │  作用：挂在 Spring AI ChatClient 上的对话增强器。
 │  │  │     │  ├─ MyLoggerAdvisor.java
-│  │  │     │  │  作用：记录大模型调用日志，方便调试。
+│  │  │     │  │  作用：记录模型请求/响应过程日志，方便排查调用链。
 │  │  │     │  └─ ReReadingAdvisor.java
-│  │  │     │     作用：对模型对话过程做补充控制。
+│  │  │     │     作用：对模型对话过程做额外控制的 advisor。
 │  │  │     │
 │  │  │     ├─ agent/
-│  │  │     │  作用：通用 Agent 抽象与实现。
+│  │  │     │  作用：通用 Agent 抽象与自治执行能力。
 │  │  │     │  ├─ BaseAgent.java
-│  │  │     │  │  作用：Agent 基类。
+│  │  │     │  │  作用：Agent 基类，定义多步执行的基础能力。
 │  │  │     │  ├─ ReActAgent.java
-│  │  │     │  │  作用：ReAct 风格 Agent。
+│  │  │     │  │  作用：基于 ReAct 思路的 Agent 实现。
 │  │  │     │  ├─ ToolCallAgent.java
-│  │  │     │  │  作用：偏工具调用型 Agent。
+│  │  │     │  │  作用：以工具调用为核心的 Agent 基础实现。
 │  │  │     │  ├─ YuManus.java
-│  │  │     │  │  作用：项目里的 Manus 风格智能体实现。
+│  │  │     │  │  作用：项目里的自治任务型智能体，支持多步推理、工具调用和记忆回写。
 │  │  │     │  └─ model/
-│  │  │     │     作用：Agent 运行状态模型。
+│  │  │     │     作用：Agent 执行过程中的状态模型。
 │  │  │     │
 │  │  │     ├─ app/
-│  │  │     │  作用：应用编排层，是核心业务层。
+│  │  │     │  作用：应用编排层，负责把意图识别、知识检索、工具调用、提示词和输出格式串起来。
 │  │  │     │  ├─ LoveApp.java
-│  │  │     │  │  作用：情感助手总入口，负责意图识别、工具调用、知识库问答、流式输出。
+│  │  │     │  │  作用：情感助手主编排入口；先做意图路由，再分流到普通对话、知识问答、工具调用或澄清分支。
 │  │  │     │  ├─ formatter/
-│  │  │     │  │  作用：回答内容格式化。
+│  │  │     │  │  作用：回答后处理与格式清洗。
 │  │  │     │  ├─ knowledge/
-│  │  │     │  │  作用：知识检索服务，负责从向量库召回上下文。
+│  │  │     │  │  作用：应用层知识召回门面，不负责入库，负责按会话范围从向量库检索、过滤、去重并拼接上下文。
 │  │  │     │  ├─ manus/
-│  │  │     │  │  作用：Manus 智能体应用层封装。
+│  │  │     │  │  作用：超级智能体应用层封装，负责把普通聊天链路和 YuManus 自治链路接起来。
 │  │  │     │  │  ├─ factory/
-│  │  │     │  │  │  作用：创建 Manus 相关对象。
+│  │  │     │  │  │  作用：创建带会话上下文的 YuManus 实例。
 │  │  │     │  │  └─ service/
-│  │  │     │  │     作用：对外提供 Manus 聊天服务。
+│  │  │     │  │     作用：对外提供 Manus 聊天服务；简单意图走 LoveApp，复杂任务走 YuManus。
 │  │  │     │  ├─ prompt/
-│  │  │     │  │  作用：集中管理系统提示词。
+│  │  │     │  │  作用：集中管理情感助手、知识问答、工具调用、澄清等系统提示词。
 │  │  │     │  └─ router/
-│  │  │     │     作用：意图路由。
+│  │  │     │     作用：意图识别与路由决策。
 │  │  │     │     ├─ HybridIntentRouter.java
-│  │  │     │     │  作用：规则优先、LLM 兜底的混合意图识别器。
+│  │  │     │     │  作用：规则优先、LLM 兜底的混合路由器。
 │  │  │     │     ├─ IntentType.java
-│  │  │     │     │  作用：定义 CHITCHAT、TOOL、KNOWLEDGE 等意图枚举。
+│  │  │     │     │  作用：定义 CHITCHAT、TOOL、KNOWLEDGE、CLARIFICATION 等意图类型。
 │  │  │     │     ├─ classifier/
-│  │  │     │     │  作用：分类器实现。
+│  │  │     │     │  作用：意图分类器实现。
 │  │  │     │     │  ├─ RuleBasedIntentClassifier.java
-│  │  │     │     │  │  作用：基于规则的意图识别。
+│  │  │     │     │  │  作用：基于关键词/规则快速判断意图。
 │  │  │     │     │  └─ LlmIntentClassifier.java
-│  │  │     │     │     作用：基于大模型的意图识别。
+│  │  │     │     │     作用：在规则无法命中时，调用大模型补充意图判断。
 │  │  │     │     ├─ model/
 │  │  │     │     │  作用：意图识别结果模型。
 │  │  │     │     └─ service/
-│  │  │     │        作用：对话历史辅助服务。
+│  │  │     │        作用：对话历史辅助服务，供意图识别阶段参考上下文。
 │  │  │     │
 │  │  │     ├─ chatmemory/
-│  │  │     │  作用：会话记忆存储。
+│  │  │     │  作用：会话记忆与历史消息持久化。
 │  │  │     │  ├─ FileBasedChatMemory.java
-│  │  │     │  │  作用：文件型聊天记忆。
+│  │  │     │  │  作用：文件型聊天记忆实现。
 │  │  │     │  ├─ jdbc/
-│  │  │     │  │  作用：基于数据库的聊天记忆实现。
+│  │  │     │  │  作用：基于数据库的聊天记忆实现，核心是“摘要 + 最近消息”的混合记忆。
+│  │  │     │  │  ├─ HybridJdbcChatMemory.java
+│  │  │     │  │  │  作用：Spring AI ChatMemory 的 JDBC 实现，负责消息存储、摘要压缩、历史恢复。
+│  │  │     │  │  ├─ ChatMemorySchemaInitializer.java
+│  │  │     │  │  │  作用：初始化聊天记忆相关表结构。
+│  │  │     │  │  ├─ MemorySummaryService.java
+│  │  │     │  │  │  作用：对历史消息做摘要压缩。
 │  │  │     │  │  ├─ model/
-│  │  │     │  │  │  作用：聊天消息、会话、摘要等实体。
+│  │  │     │  │  │  作用：聊天消息、会话、摘要等数据库实体。
 │  │  │     │  │  └─ repository/
-│  │  │     │  │     作用：JDBC 数据访问层。
+│  │  │     │  │     作用：聊天记忆 JDBC 数据访问层。
 │  │  │     │  └─ service/
-│  │  │     │     作用：聊天会话服务。
+│  │  │     │     作用：聊天会话管理服务，负责创建、查询、删除会话及读取消息历史。
 │  │  │     │
 │  │  │     ├─ config/
 │  │  │     │  作用：Spring 配置类。
 │  │  │     │  ├─ ChatMemoryConfig.java
-│  │  │     │  │  作用：配置聊天记忆 Bean。
+│  │  │     │  │  作用：装配聊天记忆相关 Bean。
 │  │  │     │  ├─ CorsConfig.java
 │  │  │     │  │  作用：配置跨域。
 │  │  │     │  └─ KnowledgeDocumentProperties.java
-│  │  │     │     作用：配置知识文档加载参数。
+│  │  │     │     作用：配置知识文档加载、切块、上传目录等参数。
 │  │  │     │
 │  │  │     ├─ constant/
-│  │  │     │  作用：常量定义。
+│  │  │     │  作用：通用常量定义。
 │  │  │     │
 │  │  │     ├─ controller/
 │  │  │     │  作用：HTTP 接口层。
 │  │  │     │  ├─ AiController.java
-│  │  │     │  │  作用：情感助手 / 流式聊天接口入口。
+│  │  │     │  │  作用：情感助手与超级智能体的聊天入口，提供同步和多种 SSE 输出方式。
 │  │  │     │  ├─ ChatSessionController.java
 │  │  │     │  │  作用：聊天会话管理接口。
 │  │  │     │  ├─ FileController.java
-│  │  │     │  │  作用：文件上传、下载相关接口。
+│  │  │     │  │  作用：文件下载/访问接口，主要服务 PDF 等产物访问。
 │  │  │     │  ├─ HealthController.java
 │  │  │     │  │  作用：健康检查接口。
 │  │  │     │  ├─ KnowledgeBaseController.java
-│  │  │     │  │  作用：知识库上传、解析、入库相关接口。
+│  │  │     │  │  作用：知识库状态查询、重载、上传入库接口。
 │  │  │     │  └─ model/
 │  │  │     │     作用：接口层请求/响应对象。
 │  │  │     │
 │  │  │     ├─ demo/
-│  │  │     │  作用：示例代码，不是主业务链路。
+│  │  │     │  作用：示例代码，不属于主业务链路。
 │  │  │     │  ├─ invoke/
 │  │  │     │  │  作用：不同 AI 调用方式的演示。
 │  │  │     │  └─ rag/
-│  │  │     │     作用：RAG 示例。
+│  │  │     │     作用：RAG 能力演示。
 │  │  │     │
 │  │  │     ├─ rag/
-│  │  │     │  作用：检索增强生成模块，是知识库能力核心。
+│  │  │     │  作用：知识库/RAG 基础设施层，负责文档加载、解析、切分、向量入库、检索增强相关配置。
 │  │  │     │  ├─ LoveAppDocumentLoader.java
-│  │  │     │  │  作用：加载知识文档。
+│  │  │     │  │  作用：统一加载并解析知识文档，再交给切分器切块。
 │  │  │     │  ├─ LoveAppVectorStoreConfig.java
-│  │  │     │  │  作用：向量库配置。
+│  │  │     │  │  作用：向量库与嵌入检索相关配置。
 │  │  │     │  ├─ PgVectorVectorStoreConfig.java
-│  │  │     │  │  作用：PGVector 相关配置。
+│  │  │     │  │  作用：PGVector 存储配置。
+│  │  │     │  ├─ LoveAppRagCustomAdvisorFactory.java
+│  │  │     │  │  作用：构造项目自定义的 RAG advisor。
+│  │  │     │  ├─ LoveAppRagCloudAdvisorConfig.java
+│  │  │     │  │  作用：RAG advisor 云端配置相关支持。
+│  │  │     │  ├─ LoveAppContextualQueryAugmenterFactory.java
+│  │  │     │  │  作用：构造上下文化查询增强相关组件。
 │  │  │     │  ├─ QueryRewriter.java
-│  │  │     │  │  作用：查询改写。
+│  │  │     │  │  作用：查询改写，提升召回效果。
 │  │  │     │  ├─ MyKeywordEnricher.java
-│  │  │     │  │  作用：关键词增强。
+│  │  │     │  │  作用：补充关键词，增强检索召回。
 │  │  │     │  ├─ parser/
-│  │  │     │  │  作用：解析不同格式文档。
-│  │  │     │  │  ├─ MarkdownKnowledgeDocumentParser.java
-│  │  │     │  │  ├─ TikaDocxDocumentParser.java
-│  │  │     │  │  └─ TikaPdfDocumentParser.java
+│  │  │     │  │  作用：不同文档格式解析器工厂与实现。
 │  │  │     │  ├─ splitter/
-│  │  │     │  │  作用：文档切块。
+│  │  │     │  │  作用：文档切块策略实现。
 │  │  │     │  ├─ service/
-│  │  │     │  │  作用：知识库入库、注册等服务。
+│  │  │     │  │  作用：知识库入库与已加载文档注册管理。
+│  │  │     │  │  ├─ KnowledgeBaseIngestionService.java
+│  │  │     │  │  │  作用：负责 classpath 文档和上传文档的解析、归一化、去重、写入向量库。
+│  │  │     │  │  └─ KnowledgeDocumentRegistry.java
+│  │  │     │  │     作用：记录已入库文档和分片，避免重复导入，并提供状态统计。
 │  │  │     │  └─ model/
-│  │  │     │     作用：知识库解析/上传/状态模型。
+│  │  │     │     作用：知识库上传、状态、解析、入库结果等模型。
 │  │  │     │
 │  │  │     └─ tools/
-│  │  │        作用：工具调用体系。
+│  │  │        作用：可被模型/Agent 调用的工具集合。
 │  │  │        ├─ WebSearchTool.java
 │  │  │        │  作用：网页搜索工具。
 │  │  │        ├─ WebScrapingTool.java
 │  │  │        │  作用：网页抓取工具。
 │  │  │        ├─ FileOperationTool.java
-│  │  │        │  作用：文件读写操作。
+│  │  │        │  作用：文件读写工具。
 │  │  │        ├─ ResourceDownloadTool.java
-│  │  │        │  作用：资源下载。
+│  │  │        │  作用：资源下载工具。
 │  │  │        ├─ TerminalOperationTool.java
-│  │  │        │  作用：终端命令执行。
+│  │  │        │  作用：终端命令执行工具。
 │  │  │        ├─ PDFGenerationTool.java
-│  │  │        │  作用：生成 PDF。
+│  │  │        │  作用：生成 PDF 文件的工具。
 │  │  │        ├─ KnowledgeSearchTool.java
-│  │  │        │  作用：知识检索工具。
+│  │  │        │  作用：面向 Agent 的知识检索工具，内部调用应用层知识召回服务。
 │  │  │        ├─ TerminateTool.java
-│  │  │        │  作用：终止任务。
+│  │  │        │  作用：结束 Agent 任务的终止工具。
 │  │  │        ├─ ToolRegistration.java
 │  │  │        │  作用：工具注册入口。
 │  │  │        ├─ pdf/
-│  │  │        │  作用：PDF 模板渲染相关类。
+│  │  │        │  作用：PDF 模板数据与渲染支持。
 │  │  │        └─ routing/
-│  │  │           作用：工具路由中心。
+│  │  │           作用：工具二级路由中心，不直接执行工具，负责把本地工具和 MCP 工具统一编目并按能力筛选候选工具。
 │  │  │           ├─ UnifiedToolRegistry.java
-│  │  │           │  作用：统一管理本地工具和 MCP 工具，并按能力筛选候选工具。
+│  │  │           │  作用：统一管理本地工具和 MCP 工具，并基于用户消息匹配能力标签。
 │  │  │           ├─ ToolCapability.java
-│  │  │           │  作用：定义工具能力分类。
+│  │  │           │  作用：定义地图、图片搜索、网页搜索、抓取、文件、PDF 等工具能力分类。
 │  │  │           ├─ ToolRoutingDecision.java
-│  │  │           │  作用：封装本次工具路由结果。
+│  │  │           │  作用：封装本次工具路由结果，包括候选工具、能力和系统提示词。
 │  │  │           └─ RegisteredTool.java
-│  │  │              作用：统一描述一个已注册工具。
+│  │  │              作用：统一描述已注册工具的元信息。
 │  │  │
 │  │  └─ resources/
 │  │     ├─ application.yml
-│  │     │  作用：主配置文件，包含端口、数据库、AI 模型、MCP、知识文档等配置。
+│  │     │  作用：主配置文件，包含端口、数据源、模型、MCP、知识文档、上传目录等配置。
 │  │     ├─ application-prod.yml
 │  │     │  作用：生产环境配置。
 │  │     ├─ mcp-servers.json
-│  │     │  作用：配置 MCP 服务端连接信息。
+│  │     │  作用：MCP 客户端连接配置。
 │  │     └─ document/
-│  │        作用：知识库原始文档目录。
-│  │        ├─ 情感常见问题和回答 - 亲密关系修复篇.md
-│  │        ├─ 情感常见问题和回答 - 人际关系篇.md
-│  │        ├─ 情感常见问题和回答 - 情绪自愈篇.md
-│  │        ├─ 情感常见问题和回答（全新版）.pdf
-│  │        └─ 情感常见问题和回答（完整版）.docx
-│  │           作用：情感知识库数据源。
+│  │        作用：项目内置知识库原始文档目录，会被批量加载入知识库。
 │  │
 │  └─ test/
 │     └─ java/com/yupi/yuaiagent/
@@ -320,43 +328,45 @@ yu-ai-agent-master/
 │        ├─ advisor/
 │        │  作用：advisor 测试。
 │        ├─ agent/
-│        │  作用：Agent 测试。
+│        │  作用：Agent / YuManus 测试。
 │        ├─ app/
-│        │  作用：LoveApp 等应用层测试。
+│        │  作用：LoveApp 等应用编排层测试。
+│        ├─ app/router/
+│        │  作用：意图分类与路由测试。
 │        ├─ rag/
-│        │  作用：RAG 相关测试。
+│        │  作用：RAG、文档加载、向量库配置测试。
 │        ├─ tools/
 │        │  作用：工具类测试。
 │        └─ demo/
 │           作用：示例模块测试。
 │
 ├─ yu-ai-agent-frontend/
-│  作用：前端项目，Vue 3 + Vite。
+│  作用：前端项目，Vue 3 + Vite；提供情感助手页和超级智能体页。
 │  ├─ src/
 │  │  ├─ api/
-│  │  │  作用：封装前端请求接口。
+│  │  │  作用：封装前端请求与 SSE 连接，负责对接聊天、会话、知识库上传等后端接口。
 │  │  ├─ assets/
 │  │  │  作用：静态资源。
 │  │  ├─ components/
 │  │  │  作用：通用组件。
 │  │  │  ├─ ChatRoom.vue
-│  │  │  │  作用：聊天窗口核心组件。
+│  │  │  │  作用：聊天窗口核心组件；负责消息展示、输入框、文件上传、PDF 预览、推理过程展示。
 │  │  │  ├─ PdfPreview.vue
-│  │  │  │  作用：PDF 预览。
+│  │  │  │  作用：PDF 预览组件。
 │  │  │  ├─ AppFooter.vue
 │  │  │  │  作用：页脚组件。
 │  │  │  └─ AiAvatarFallback.vue
-│  │  │     作用：AI 头像兜底显示。
+│  │  │     作用：不同 AI 类型的头像兜底显示。
 │  │  ├─ router/
 │  │  │  作用：前端路由管理。
 │  │  ├─ views/
 │  │  │  作用：页面级组件。
 │  │  │  ├─ Home.vue
-│  │  │  │  作用：首页。
+│  │  │  │  作用：首页/入口页。
 │  │  │  ├─ LoveMaster.vue
-│  │  │  │  作用：情感助手页面。
+│  │  │  │  作用：情感助手页面；对接 LoveApp，会话管理和知识文档上传也在这里完成。
 │  │  │  └─ SuperAgent.vue
-│  │  │     作用：超级智能体页面。
+│  │  │     作用：超级智能体页面；对接 Manus SSE，并展示推理过程和工具执行痕迹。
 │  │  ├─ App.vue
 │  │  │  作用：应用根组件。
 │  │  ├─ main.js
@@ -371,13 +381,11 @@ yu-ai-agent-master/
 │  │  作用：Vite 构建配置。
 │  ├─ nginx.conf
 │  │  作用：前端部署时的 Nginx 配置。
-│  ├─ Dockerfile
-│  │  作用：前端镜像构建。
-│  └─ node_modules/
-│     作用：前端依赖目录，一般不看业务逻辑。
+│  └─ Dockerfile
+│     作用：前端镜像构建文件。
 │
 ├─ yu-image-search-mcp-server/
-│  作用：独立的 MCP 图片搜索服务。
+│  作用：独立的 MCP 图片搜索服务，为主项目提供图片搜索能力。
 │  ├─ src/
 │  │  ├─ main/
 │  │  │  ├─ java/com/yupi/yuimagesearchmcpserver/
@@ -394,44 +402,31 @@ yu-ai-agent-master/
 │  │  └─ test/
 │  │     作用：MCP 服务测试代码。
 │  ├─ pom.xml
-│  │  作用：MCP 服务 Maven 配置。
+│  │  作用：MCP 子项目 Maven 配置。
 │  ├─ mvnw / mvnw.cmd
 │  │  作用：Maven Wrapper。
-│  ├─ .mvn/
-│  │  作用：Maven Wrapper 配套目录。
-│  └─ target/
-│     作用：构建产物目录。
+│  └─ .mvn/
+│     作用：Maven Wrapper 配套目录。
 │
 ├─ .mvn/
 │  作用：主项目 Maven Wrapper 配置。
 │
-├─ .idea/
-│  作用：IntelliJ IDEA 工程配置。
-│
-├─ .vscode/
-│  作用：VS Code 工程配置。
+├─ tmp/
+│  作用：临时目录；当前知识库上传文件会按会话写入该目录下。
 │
 ├─ target/
 │  作用：主后端构建输出目录。
-│
-├─ tmp/
-│  作用：临时目录，当前也被知识库上传配置用作上传目录。
-│
-├─ .m2home/
-│  作用：本地 Maven 相关目录，通常是开发环境辅助目录。
 │
 ├─ Dockerfile
 │  作用：主后端 Docker 镜像构建文件。
 │
 ├─ pom.xml
-│  作用：主后端 Maven 配置，定义 Spring Boot、Spring AI、数据库、向量库、工具等依赖。
+│  作用：主后端 Maven 配置，定义 Spring Boot、Spring AI、MCP、数据库、向量库、工具等依赖。
 │
 ├─ README.md
 │  作用：项目说明文档。
 │
-├─ mvnw / mvnw.cmd
-│  作用：主项目 Maven Wrapper。
-│
 └─ ${maven.multiModuleProjectDirectory}/
-   作用：这个目录看起来不太正常，像是某次构建或配置错误生成的占位目录，建议后续确认是否为误生成。
+   作用：这个目录确实存在于仓库根目录中，看起来像构建/配置异常生成的占位目录，建议后续确认是否可以清理。
+
 ```text
